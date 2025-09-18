@@ -206,25 +206,28 @@ Focus on TOPIC ALIGNMENT, not word count.`
       const content = data.content[0]?.text;
       
       try {
-        // Extract JSON array using try/parse approach
-        // Find the JSON array start
-        const startIndex = content.indexOf('[');
-        if (startIndex === -1) throw new Error('No JSON array found in response');
+        // Simple approach: Find the JSON array using line-based extraction
+        const lines = content.split('\n');
+        let jsonLines = [];
+        let inArray = false;
         
-        // Try progressively longer substrings until we get valid JSON
-        let jsonStr = '';
-        for (let endIndex = startIndex + 1; endIndex <= content.length; endIndex++) {
-          const candidate = content.substring(startIndex, endIndex);
-          try {
-            JSON.parse(candidate);
-            jsonStr = candidate;
-            // Found valid JSON - but keep looking for a longer valid array
-          } catch {
-            // Not valid JSON yet, continue
+        for (const line of lines) {
+          if (line.trim().startsWith('[')) {
+            inArray = true;
+            jsonLines.push(line);
+          } else if (inArray && line.trim().endsWith(']')) {
+            jsonLines.push(line);
+            break;
+          } else if (inArray) {
+            jsonLines.push(line);
           }
         }
         
-        if (!jsonStr) throw new Error('Could not extract valid JSON array');
+        if (jsonLines.length === 0) {
+          throw new Error('No JSON array found in response');
+        }
+        
+        const jsonStr = jsonLines.join('\n');
         
         const matchedSections = JSON.parse(jsonStr);
         
