@@ -100,14 +100,14 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header with navigation */}
-      <div className="flex items-center justify-between p-4 border-b bg-background">
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Header with navigation - Fixed height */}
+      <div className="flex-shrink-0 flex items-center justify-between p-3 border-b bg-background">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack}>
             ← Back to Setup
           </Button>
-          <h1 className="text-xl font-semibold">Practice Mode</h1>
+          <h1 className="text-lg font-semibold">Practice Mode</h1>
         </div>
         
         {/* Slide Navigation */}
@@ -156,10 +156,10 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
         </div>
       </div>
 
-      {/* Main Content - Two Pane Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Left Pane: Slide Image (Desktop: 50% width to match each right section) */}
-        <div className="lg:w-1/2 lg:h-full h-[40vh] bg-gray-50 flex items-center justify-center relative border-r">
+      {/* Main Content - Two Pane Layout - Use remaining screen space */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Pane: Slide Image (Desktop: 50% width) */}
+        <div className="lg:w-1/2 h-full bg-gray-50 flex items-center justify-center relative border-r">
           {currentSlide.imageUrl ? (
             <img
               src={currentSlide.imageUrl}
@@ -188,15 +188,15 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
         </div>
 
         {/* Right Pane: Guide + Script (Desktop: 50% width, split evenly) */}
-        <div className="lg:w-1/2 flex-1 flex flex-col">
-          {/* Presenter Guide Section (50% of right pane height) */}
+        <div className="lg:w-1/2 flex-1 flex flex-col h-full">
+          {/* Presenter Guide Section (45% of right pane height) */}
           {showGuide && (
-            <div className="flex-1 lg:h-1/2 p-4 border-b">
+            <div className="h-[45%] p-2 border-b">
               <Card className="h-full flex flex-col">
-                <div className="p-4 border-b bg-gray-50/50">
-                  <h3 className="font-semibold text-lg">Presenter Guide</h3>
+                <div className="p-3 border-b bg-gray-50/50 flex-shrink-0">
+                  <h3 className="font-semibold text-base">Presenter Guide</h3>
                 </div>
-                <div className="flex-1 p-4 overflow-y-auto">                
+                <div className="flex-1 p-3 overflow-y-auto">                
                 {isGeneratingGuide ? (
                   <div className="flex items-center justify-center h-32">
                     <div className="flex items-center gap-2">
@@ -267,18 +267,18 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             </div>
           )}
 
-          {/* Script Section (50% of right pane height) */}
+          {/* Script Section (55% of right pane height) */}
           {showScript && (
-            <div className="flex-1 lg:h-1/2 p-4">
+            <div className="h-[55%] p-2">
               <Card className="h-full flex flex-col">
-                <div className="p-4 border-b bg-gray-50/50 flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">Full Script</h3>
-                  <Badge variant="outline">
+                <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
+                  <h3 className="font-semibold text-base">Full Script</h3>
+                  <Badge variant="outline" className="text-xs">
                     {currentSlide.script ? `${currentSlide.script.split(/\s+/).length} words` : '0 words'}
                   </Badge>
                 </div>
                 
-                <div className="flex-1 p-4 overflow-y-auto">
+                <div className="flex-1 p-3 overflow-y-auto">
                   {currentSlide.script ? (
                     <div className="prose prose-sm max-w-none">
                       <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
