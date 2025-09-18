@@ -174,21 +174,6 @@ Return ONLY the JSON, no other text.`
           apiKey: this.apiKey,
           model: this.model,
           max_tokens: 4000,
-          tools: [{
-            name: "provide_script_sections",
-            description: "Provides script sections matched to slides",
-            input_schema: {
-              type: "object",
-              properties: {
-                script_sections: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: `Array of ${slideAnalyses.length} script portions, one for each slide`
-                }
-              },
-              required: ["script_sections"]
-            }
-          }],
           messages: [{
             role: 'user',
             content: `You are an expert presentation coach. Match script content to slide content based on topic alignment.
@@ -203,9 +188,10 @@ Key topics: ${analysis.keyPoints.join(', ')}
 FULL SPEAKER SCRIPT:
 ${fullScript}
 
-TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics. Each script portion should contain the parts that best match what's shown on that slide.
+TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics.
 
-Use the provide_script_sections tool to return the matched script portions.`
+CRITICAL: Return ONLY a valid JSON array with no commentary:
+["script portion for slide 1", "script portion for slide 2", ...]`
           }]
         })
       });
@@ -219,36 +205,36 @@ Use the provide_script_sections tool to return the matched script portions.`
       }
 
       const data = await response.json();
+      const content = data.content[0]?.text || '';
       
       try {
-        // Look for tool use in the response
-        let scriptSections = null;
+        // Bulletproof JSON extraction: first [ to last ]
+        const firstBracket = content.indexOf('[');
+        const lastBracket = content.lastIndexOf(']');
         
-        if (data.content) {
-          for (const content of data.content) {
-            if (content.type === 'tool_use' && content.name === 'provide_script_sections') {
-              scriptSections = content.input?.script_sections;
-              break;
-            }
-          }
+        if (firstBracket === -1 || lastBracket === -1 || firstBracket >= lastBracket) {
+          throw new Error('No valid JSON array found in response');
         }
         
-        if (!scriptSections || !Array.isArray(scriptSections)) {
-          throw new Error('No script sections found in tool response');
+        const jsonStr = content.substring(firstBracket, lastBracket + 1);
+        const scriptSections = JSON.parse(jsonStr);
+        
+        if (!Array.isArray(scriptSections)) {
+          throw new Error('Response is not an array');
         }
         
         if (scriptSections.length !== slideAnalyses.length) {
           throw new Error(`Expected ${slideAnalyses.length} sections, got ${scriptSections.length}`);
         }
         
-        console.log('✅ Claude matched script to slides using tools:', scriptSections.length, 'sections');
+        console.log('✅ Claude matched script to slides with bulletproof parsing:', scriptSections.length, 'sections');
         
         const result = {
           matches: scriptSections.map((section: string, i: number) => ({
             slideNumber: i + 1,
             scriptSection: section,
             confidence: 95,
-            reasoning: 'AI tool-based content matching',
+            reasoning: 'AI content matching with bulletproof parsing',
             keyAlignment: []
           }))
         };
