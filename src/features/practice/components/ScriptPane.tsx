@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { processScript, estimateSpeakingTime } from '../utils/script-processor';
+import { FileText, Clock, Edit, Eye, EyeOff, Save } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ScriptPaneProps {
   /** ID of the current slide */
@@ -49,110 +54,160 @@ export function ScriptPane({
 
   if (!isVisible) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
-        <div className="text-center p-4">
-          <p className="text-gray-500 text-sm mb-2">Script Hidden</p>
-          <button
-            onClick={() => onVisibilityChange?.(true)}
-            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            Show Script
-          </button>
-        </div>
-      </div>
+      <Card className="h-full border-2 border-dashed border-muted-foreground/20 bg-muted/10">
+        <CardContent className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto">
+              <EyeOff className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-muted-foreground text-sm mb-3">Script Hidden</p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onVisibilityChange?.(true)}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Show Script
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white border rounded-lg">
+    <Card className="h-full shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b bg-gray-50 rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium text-gray-800">Speaker Script</h3>
-          {isSaving && (
-            <div className="flex items-center gap-1 text-xs text-blue-600">
-              <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
-              <span>Saving...</span>
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <FileText className="w-4 h-4 text-blue-600" />
             </div>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Script Stats */}
-          <div className="text-xs text-gray-500 flex items-center gap-3">
-            <span>{processedScript.wordCount} words</span>
-            <span>{estimateSpeakingTime(processedScript.wordCount)}</span>
-          </div>
-          
-          {/* Hide Button */}
-          {onVisibilityChange && (
-            <button
-              onClick={() => onVisibilityChange(false)}
-              className="text-xs text-gray-500 hover:text-gray-700"
-              title="Hide script"
-            >
-              Hide
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Script Content */}
-      <div className="flex-1 p-4">
-        {isEditable ? (
-          <textarea
-            value={script}
-            onChange={(e) => setScript(e.target.value)}
-            placeholder="Add your speaker notes here... 
-
-Tips for great scripts:
-• Use keywords like 'important' or 'key' to highlight main points
-• Add transition phrases like 'moving on' or 'next' for flow
-• Include timing cues like 'pause' or 'emphasize' for delivery
-• Write in a conversational tone as if speaking to your audience"
-            className="w-full h-full p-0 border-0 resize-none focus:ring-0 text-sm leading-relaxed"
-          />
-        ) : (
-          <div className="h-full overflow-y-auto">
-            {script ? (
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                {/* Render highlighted script with bold keywords */}
-                {processedScript.highlightedScript.split('**').map((part, index) => 
-                  index % 2 === 1 ? (
-                    <strong key={index} className="bg-yellow-100 font-semibold">
-                      {part}
-                    </strong>
-                  ) : (
-                    <span key={index}>{part}</span>
-                  )
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base text-gray-800">Speaker Script</CardTitle>
+                {isSaving && (
+                  <div className="flex items-center gap-1">
+                    <Save className="h-3 w-3 text-blue-600 animate-pulse" />
+                    <span className="text-xs text-blue-600">Saving...</span>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <div className="text-center">
-                  <p>No script available for this slide</p>
-                  <p className="text-xs mt-1">Switch to Preparation Mode to add a script</p>
-                </div>
-              </div>
+              <CardDescription className="text-xs mt-1">
+                {isEditable ? 'Edit your presentation script' : 'Practice with your script'}
+              </CardDescription>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Script Stats */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs gap-1">
+                <FileText className="h-3 w-3" />
+                {processedScript.wordCount} words
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1">
+                <Clock className="h-3 w-3" />
+                {estimateSpeakingTime(processedScript.wordCount)}
+              </Badge>
+            </div>
+            
+            {/* Hide Button */}
+            {onVisibilityChange && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onVisibilityChange(false)}
+                className="gap-2 h-8 px-3"
+                title="Hide script"
+              >
+                <EyeOff className="h-3 w-3" />
+                Hide
+              </Button>
             )}
           </div>
+        </div>
+      </CardHeader>
+
+      {/* Script Content */}
+      <CardContent className="p-0 flex-1">
+        {isEditable ? (
+          <div className="p-6 h-full">
+            <textarea
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              placeholder="Add your speaker notes here...
+
+💡 Tips for great scripts:
+• Use keywords like 'important' or 'key' to highlight main points
+• Add transition phrases like 'moving on' or 'next' for flow  
+• Include timing cues like 'pause' or 'emphasize' for delivery
+• Write in a conversational tone as if speaking to your audience
+• Practice reading aloud to find natural rhythm"
+              className="w-full h-full p-0 border-0 resize-none focus:ring-0 text-sm leading-relaxed text-gray-800 placeholder:text-gray-400"
+            />
+          </div>
+        ) : (
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {script ? (
+                <div className="prose prose-sm max-w-none">
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
+                    {/* Render highlighted script with modern highlighting */}
+                    {processedScript.highlightedScript.split('**').map((part, index) => 
+                      index % 2 === 1 ? (
+                        <mark key={index} className="bg-yellow-200/60 font-semibold px-1 py-0.5 rounded">
+                          {part}
+                        </mark>
+                      ) : (
+                        <span key={index}>{part}</span>
+                      )
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full min-h-[200px]">
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground font-medium">No script available for this slide</p>
+                      <p className="text-xs text-muted-foreground/80 mt-1">Switch to Setup Mode to add a script</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         )}
-      </div>
+      </CardContent>
 
       {/* Footer with helpful tips for practice mode */}
       {!isEditable && script && (
-        <div className="p-3 bg-blue-50 border-t border-blue-100 rounded-b-lg">
-          <div className="text-xs text-blue-700">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium">Practice Tip:</span>
-            </div>
-            <p>
-              Focus on the <strong>highlighted keywords</strong> for emphasis. 
-              Use natural gestures and maintain eye contact with your audience.
-            </p>
-          </div>
+        <div className="px-6 py-4 bg-blue-50/80 border-t border-blue-100">
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Edit className="h-3 w-3 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-blue-900 mb-1">Practice Tip</h4>
+                  <p className="text-xs text-blue-800">
+                    Focus on the <mark className="bg-yellow-200/60 px-1 py-0.5 rounded font-medium">highlighted keywords</mark> for emphasis. 
+                    Use natural gestures and maintain eye contact with your audience.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

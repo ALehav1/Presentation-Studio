@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { parseFullScript, applyParsedScriptsToSlides } from '../../features/practice/utils/script-processor';
+import { saveSlideImage, loadPresentationImages, deletePresentationImages } from '../../services/imageStorage';
 
 interface Slide {
   id: string;
@@ -29,16 +30,17 @@ interface PresentationState {
   currentSlideIndex: number;
   
   // Actions
-  createPresentation: (title: string, slideImages: string[]) => void;
+  createPresentation: (title: string, slideImages: string[]) => Promise<void>;
   updateSlideScript: (slideId: string, script: string) => void;
   parseAndApplyBulkScript: (fullScript: string) => void;
   setCurrentSlide: (index: number) => void;
   nextSlide: () => void;
   previousSlide: () => void;
-  setUploadStatus: (status: PresentationState['uploadStatus']) => void;
+  setUploadStatus: (status: 'idle' | 'uploading' | 'converting' | 'complete' | 'error') => void;
   setUploadProgress: (progress: number) => void;
   setUploadError: (error: string | null) => void;
-  clearPresentation: () => void;
+  clearPresentation: () => Promise<void>;
+  loadImagesFromIndexedDB: () => Promise<void>;
 }
 
 export const usePresentationStore = create<PresentationState>()(
@@ -52,18 +54,34 @@ export const usePresentationStore = create<PresentationState>()(
       currentSlideIndex: 0,
       
       // Create new presentation from uploaded PDF
-      createPresentation: (title, slideImages) => {
+      createPresentation: async (title, slideImages) => {
+        const timestamp = Date.now();
+        const presentationId = `pres-${timestamp}`;
+        
         const slides: Slide[] = slideImages.map((imageUrl, index) => ({
-          id: `slide-${Date.now()}-${index}`,
+          id: `slide-${timestamp}-${index}`,
           imageUrl,
           script: '',
           notes: '',
           keyPoints: []
         }));
         
+        // Save images to IndexedDB asynchronously
+        try {
+          await Promise.all(
+            slides.map(slide => 
+              saveSlideImage(slide.id, slide.imageUrl, presentationId)
+            )
+          );
+          console.log(`💾 Saved ${slides.length} images to IndexedDB`);
+        } catch (error) {
+          console.error('❌ Failed to save images to IndexedDB:', error);
+          // Continue anyway - images will work in current session
+        }
+        
         set({
           currentPresentation: {
-            id: `pres-${Date.now()}`,
+            id: presentationId,
             title,
             slides,
             createdAt: new Date(),
@@ -185,13 +203,54 @@ export const usePresentationStore = create<PresentationState>()(
       setUploadError: (error) => set({ uploadError: error }),
       
       // Clear everything
-      clearPresentation: () => set({
-        currentPresentation: null,
-        uploadStatus: 'idle',
-        uploadProgress: 0,
-        uploadError: null,
-        currentSlideIndex: 0
-      })
+      clearPresentation: async () => {
+        const { currentPresentation } = get();
+        
+        // Delete images from IndexedDB when clearing presentation
+        if (currentPresentation?.id) {
+          try {
+            await deletePresentationImages(currentPresentation.id);
+            console.log(`🗑️ Deleted images for presentation: ${currentPresentation.id}`);
+          } catch (error) {
+            console.error('❌ Failed to delete presentation images:', error);
+          }
+        }
+        
+        set({
+          currentPresentation: null,
+          uploadStatus: 'idle',
+          uploadProgress: 0,
+          uploadError: null,
+          currentSlideIndex: 0
+        });
+      },
+      
+      // Load images from IndexedDB for current presentation
+      loadImagesFromIndexedDB: async () => {
+        const { currentPresentation } = get();
+        if (!currentPresentation) return;
+        
+        try {
+          const imageMap = await loadPresentationImages(currentPresentation.id);
+          
+          // Update slides with loaded images
+          const updatedSlides = currentPresentation.slides.map(slide => ({
+            ...slide,
+            imageUrl: imageMap[slide.id] || slide.imageUrl
+          }));
+          
+          set({
+            currentPresentation: {
+              ...currentPresentation,
+              slides: updatedSlides
+            }
+          });
+          
+          console.log(`📷 Restored ${Object.keys(imageMap).length} images from IndexedDB`);
+        } catch (error) {
+          console.error('❌ Failed to load images from IndexedDB:', error);
+        }
+      }
     }),
     {
       name: 'presentation-storage', // localStorage key
@@ -202,7 +261,7 @@ export const usePresentationStore = create<PresentationState>()(
           ...state.currentPresentation,
           slides: state.currentPresentation.slides.map(slide => ({
             ...slide,
-            imageUrl: slide.imageUrl // Keep the actual URL for persistence
+            imageUrl: '' // Exclude images from localStorage - they're in IndexedDB
           }))
         } : null,
         currentSlideIndex: state.currentSlideIndex

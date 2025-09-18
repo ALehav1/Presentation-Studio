@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePresentationStore } from './core/store/presentation';
 import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { SlideViewer } from './features/slides/components/SlideViewer';
@@ -11,8 +11,16 @@ import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 
 export default function App() {
-  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex } = usePresentationStore();
+  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
+  
+  // Load images from IndexedDB when app starts with a persisted presentation
+  useEffect(() => {
+    if (currentPresentation && currentPresentation.slides.some(slide => !slide.imageUrl || slide.imageUrl.trim() === '')) {
+      console.log('📷 Loading images from IndexedDB for persisted presentation...');
+      loadImagesFromIndexedDB();
+    }
+  }, [currentPresentation, loadImagesFromIndexedDB]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">

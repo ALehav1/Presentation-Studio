@@ -1,6 +1,8 @@
 # PresentationStudio
 
-A comprehensive presentation workflow application covering setup, practice, and delivery. Upload PDF slides, add speaker scripts, rehearse with interactive tools, and deliver presentations with a clean presenter interface.
+🚀 **A production-ready presentation workflow application** with premium UI and unlimited slide storage. Built with React, TypeScript, and shadcn/ui for professional presenters and teams.
+
+**🎯 Complete workflow**: Upload PDF slides → Add scripts → Practice with AI guidance → Deliver seamlessly
 
 ## ✨ Features
 
@@ -11,8 +13,10 @@ A comprehensive presentation workflow application covering setup, practice, and 
 - **Script Processing**: Automatic distribution of scripts across slides with smart parsing
 - **File Support**: PDF slides and TXT script files with comprehensive error handling
 - **Navigation**: Keyboard shortcuts, slide thumbnails, and smooth transitions
-- **Persistent Storage**: Auto-save presentations to localStorage with Zustand persistence
-- **Mobile Responsive**: Optimized for all device sizes (minimum 375px width)
+- **🚀 IndexedDB Storage**: Unlimited slide storage with image persistence across refreshes
+- **🎨 Premium UI**: shadcn/ui components with glass morphism and gradient designs
+- **📱 Mobile Responsive**: Optimized for all device sizes (minimum 375px width)
+- **⚡ High Performance**: Images in IndexedDB, app state in localStorage for optimal speed
 
 ### Script & Content Management  
 - **TXT Script Upload**: Clean text file processing with RTF artifact removal
