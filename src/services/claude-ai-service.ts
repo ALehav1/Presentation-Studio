@@ -206,11 +206,16 @@ Focus on TOPIC ALIGNMENT, not word count.`
       const content = data.content[0]?.text;
       
       try {
-        // Extract JSON array from response (Claude might add commentary)
+        // Extract JSON array from response and clean it
         const jsonMatch = content.match(/\[[\s\S]*\]/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+        if (!jsonMatch) throw new Error('No JSON array found in response');
         
-        const matchedSections = JSON.parse(jsonStr);
+        // Remove JavaScript-style comments that Claude adds
+        const cleanJsonStr = jsonMatch[0]
+          .replace(/\/\/[^\n\r]*/g, '') // Remove // comments
+          .replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
+        
+        const matchedSections = JSON.parse(cleanJsonStr);
         
         if (!Array.isArray(matchedSections)) {
           throw new Error('Response is not an array');
