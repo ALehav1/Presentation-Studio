@@ -168,6 +168,7 @@ Return ONLY the JSON, no other text.`
 
     try {
       console.log('🎯 Claude matching script to slides intelligently...');
+      console.log('📊 Number of slides to match:', slideAnalyses.length);
       
       // Build a prompt that strongly encourages JSON-only response
       const prompt = buildStrictJSONPrompt(slideAnalyses, fullScript);
@@ -190,6 +191,7 @@ Return ONLY the JSON, no other text.`
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API request failed:', response.status, errorData);
         return { 
           success: false, 
           error: `API error: ${errorData.error?.message || response.status}`
@@ -200,64 +202,106 @@ Return ONLY the JSON, no other text.`
       const content = data.content?.[0]?.text || '';
       
       if (!content) {
-        throw new Error('Empty response from Claude');
+        console.error('❌ Empty response from Claude');
+        return {
+          success: false,
+          error: 'Empty response from Claude'
+        };
       }
 
       console.log('📄 Raw Claude response length:', content.length);
-      console.log('🔍 RAW CLAUDE RESPONSE:', content.substring(0, 500));
-      // Use our robust parser to extract the JSON array
-      const scriptSections = ClaudeJSONParser.extractJSONArray(content);
+      console.log('🔍 First 200 chars of response:', content.substring(0, 200));
+      console.log('🔍 Last 100 chars of response:', content.substring(content.length - 100));
       
-      // Validate we got reasonable results
+      // Check if ClaudeJSONParser is available
+      if (typeof ClaudeJSONParser === 'undefined') {
+        console.error('❌ ClaudeJSONParser is not defined! Import issue?');
+        throw new Error('ClaudeJSONParser not available');
+      }
+      
+      let scriptSections: string[] = [];
+      
+      try {
+        console.log('🔧 Attempting to extract JSON with ClaudeJSONParser...');
+        scriptSections = ClaudeJSONParser.extractJSONArray(content);
+        console.log('✅ Successfully extracted', scriptSections.length, 'sections');
+        console.log('📝 First section preview:', scriptSections[0]?.substring(0, 100));
+      } catch (parseError) {
+        console.error('❌ ClaudeJSONParser.extractJSONArray failed:', parseError.message);
+        console.error('📊 Parser error details:', parseError);
+        
+        // Try manual extraction as diagnostic
+        console.log('🔧 Attempting manual JSON extraction...');
+        const jsonMatch = content.match(/\[\s*[\s\S]*?\]/);
+        if (jsonMatch) {
+          console.log('📍 Found JSON-like structure at position', content.indexOf(jsonMatch[0]));
+          try {
+            const manualParse = JSON.parse(jsonMatch[0]);
+            console.log('✅ Manual parse successful!', manualParse.length, 'items');
+            scriptSections = manualParse;
+          } catch (e) {
+            console.error('❌ Manual parse also failed:', e.message);
+          }
+        } else {
+          console.log('❌ No JSON array pattern found in response');
+        }
+      }
+      
+      // If we have no sections at this point, fall back
+      if (scriptSections.length === 0) {
+        console.log('📊 No sections extracted, falling back to semantic splitter');
+        const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
+        
+        return {
+          success: true,
+          matches: fallbackSections.map((section: string, i: number) => ({
+            slideNumber: i + 1,
+            scriptSection: section,
+            confidence: 60,
+            reasoning: 'Fallback: semantic splitting',
+            keyAlignment: []
+          }))
+        };
+      }
+      
+      // Validate the sections
       const validation = ClaudeJSONParser.validateExtractedSections(
         scriptSections,
         slideAnalyses.length
       );
       
-      if (!validation.valid) {
-        console.warn(`⚠️ Script matching validation: ${validation.message}`);
-        
-        // If we got some sections but wrong count, try to adjust
-        if (scriptSections.length > 0) {
-          const adjustedSections = this.adjustSectionCount(scriptSections, slideAnalyses.length);
-          return {
-            success: true,
-            matches: adjustedSections.map((section: string, i: number) => ({
-              slideNumber: i + 1,
-              scriptSection: section,
-              confidence: 85,
-              reasoning: 'AI content matching with count adjustment',
-              keyAlignment: []
-            }))
-          };
-        }
-        
-        // Otherwise fall back to semantic splitter
-        throw new Error(validation.message);
+      console.log('📋 Validation result:', validation);
+      
+      let finalSections = scriptSections;
+      
+      if (!validation.valid && scriptSections.length > 0) {
+        console.log('⚙️ Adjusting section count from', scriptSections.length, 'to', slideAnalyses.length);
+        finalSections = this.adjustSectionCount(scriptSections, slideAnalyses.length);
       }
 
-      console.log(`✅ Successfully matched ${scriptSections.length} script sections to slides`);
+      console.log(`✅ Successfully matched ${finalSections.length} script sections to slides`);
       
-      const result = {
-        matches: scriptSections.map((section: string, i: number) => ({
-          slideNumber: i + 1,
-          scriptSection: section,
-          confidence: 95,
-          reasoning: 'AI content matching with robust parsing',
-          keyAlignment: []
-        }))
-      };
+      // Convert to the expected format
+      const matches = finalSections.map((section: string, i: number) => ({
+        slideNumber: i + 1,
+        scriptSection: section,
+        confidence: validation.valid ? 95 : 85,
+        reasoning: validation.valid ? 
+          'AI content matching with high confidence' : 
+          'AI content matching with count adjustment',
+        keyAlignment: []  // Simplified for diagnostic
+      }));
       
       return {
         success: true,
-        matches: result.matches
+        matches: matches
       };
 
     } catch (error) {
-      console.error('❌ Script matching failed:', error.message);
+      console.error('❌ Outer catch - Script matching failed:', error.message);
+      console.error('📊 Full error:', error);
       
-      // Fall back to semantic splitter
-      console.log('📊 Falling back to semantic script splitter...');
+      // Ultimate fallback
       const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
       
       return {
@@ -265,8 +309,8 @@ Return ONLY the JSON, no other text.`
         matches: fallbackSections.map((section: string, i: number) => ({
           slideNumber: i + 1,
           scriptSection: section,
-          confidence: 70,
-          reasoning: 'Semantic script allocation fallback',
+          confidence: 50,
+          reasoning: 'Error recovery fallback',
           keyAlignment: []
         }))
       };
