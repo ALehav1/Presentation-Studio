@@ -204,7 +204,7 @@ Return ONLY the JSON, no other text.`
       }
 
       console.log('📄 Raw Claude response length:', content.length);
-      
+      console.log('🔍 RAW CLAUDE RESPONSE:', content.substring(0, 500));
       // Use our robust parser to extract the JSON array
       const scriptSections = ClaudeJSONParser.extractJSONArray(content);
       
