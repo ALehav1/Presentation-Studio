@@ -44,10 +44,10 @@ export class ClaudeAIService {
     try {
       console.log(`🔍 Claude analyzing slide ${slideNumber}...`);
       
-      // Convert and compress image to prevent timeouts
-      const compressedImage = await this.compressImageForClaude(imageDataUrl);
-      if (!compressedImage) {
-        return { success: false, error: 'Image compression failed' };
+      // Convert data URL to base64
+      const base64Image = imageDataUrl.split(',')[1];
+      if (!base64Image) {
+        return { success: false, error: 'Invalid image format' };
       }
       
       const response = await fetch(this.apiRoute, {
@@ -67,7 +67,7 @@ export class ClaudeAIService {
                 source: {
                   type: 'base64',
                   media_type: 'image/png',
-                  data: compressedImage
+                  data: base64Image
                 }
               },
               {
