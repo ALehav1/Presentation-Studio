@@ -156,42 +156,44 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
         </div>
       </div>
 
-      {/* Main Content - Two Pane Layout - Use remaining screen space */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Pane: Slide Image (Desktop: 50% width) */}
-        <div className="lg:w-1/2 h-full bg-gray-50 flex items-center justify-center relative border-r">
-          {currentSlide.imageUrl ? (
-            <img
-              src={currentSlide.imageUrl}
-              alt={`Slide ${currentSlideIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
-            />
-          ) : (
-            <div className="text-center p-8">
-              <div className="w-16 h-16 bg-gray-200 rounded-lg mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Slide {currentSlideIndex + 1}</p>
-            </div>
-          )}
+      {/* Main Content - New Three Section Layout */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        
+        {/* Top Row: Slide + Presenter Guide (Equal sizes, 60% of screen height) */}
+        <div className="h-[60%] flex">
           
-          {/* Full-screen button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute top-4 right-4 opacity-70 hover:opacity-100"
-            onClick={() => {
-              // TODO: Implement full-screen slide view
-              console.log('Full-screen slide view');
-            }}
-          >
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-        </div>
+          {/* Left: Slide Image (50% width) */}
+          <div className="w-1/2 bg-gray-50 flex items-center justify-center relative border-r border-b">
+            {currentSlide.imageUrl ? (
+              <img
+                src={currentSlide.imageUrl}
+                alt={`Slide ${currentSlideIndex + 1}`}
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <div className="text-center p-8">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Slide {currentSlideIndex + 1}</p>
+              </div>
+            )}
+            
+            {/* Full-screen button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-4 right-4 opacity-70 hover:opacity-100"
+              onClick={() => {
+                // TODO: Implement full-screen slide view
+                console.log('Full-screen slide view');
+              }}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+          </div>
 
-        {/* Right Pane: Guide + Script (Desktop: 50% width, split evenly) */}
-        <div className="lg:w-1/2 flex-1 flex flex-col h-full">
-          {/* Presenter Guide Section (45% of right pane height) */}
+          {/* Right: Presenter Guide (50% width, SAME SIZE as slide) */}
           {showGuide && (
-            <div className="h-[45%] p-2 border-b">
+            <div className="w-1/2 p-2 border-b">
               <Card className="h-full flex flex-col">
                 <div className="p-3 border-b bg-gray-50/50 flex-shrink-0">
                   <h3 className="font-semibold text-base">Presenter Guide</h3>
@@ -205,25 +207,25 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     </div>
                   </div>
                 ) : contentGuide ? (
-                  <div className="space-y-4 text-sm leading-relaxed">
+                  <div className="space-y-3 text-sm leading-relaxed">
                     {/* Transition From Previous */}
                     {contentGuide.transitionFrom && (
-                      <div className="p-3 mb-4 rounded-md bg-gray-50 border-l-2 border-gray-300">
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">From previous:</p>
-                        <p className="text-gray-600 italic">{contentGuide.transitionFrom}</p>
+                      <div className="p-2 rounded-md bg-gray-50 border-l-2 border-gray-300">
+                        <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">From previous:</p>
+                        <p className="text-gray-600 italic text-sm">{contentGuide.transitionFrom}</p>
                       </div>
                     )}
                     
                     {/* Key Messages */}
                     {contentGuide.keyMessages.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">Key messages:</p>
-                        <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Key messages:</p>
+                        <div className="space-y-2">
                           {contentGuide.keyMessages.map((message, index) => (
-                            <div key={index} className="flex items-start gap-3">
-                              <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>
+                            <div key={index} className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>
                               <span 
-                                className="flex-1 leading-relaxed"
+                                className="flex-1 leading-relaxed text-sm"
                                 dangerouslySetInnerHTML={{
                                   __html: message.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-blue-700">$1</strong>')
                                 }}
@@ -236,19 +238,18 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     
                     {/* Transition To Next */}
                     {contentGuide.transitionTo && (
-                      <div className="p-3 mb-2 rounded-md bg-blue-50 border-l-2 border-blue-300">
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">To next:</p>
-                        <p className="text-blue-600 italic">{contentGuide.transitionTo}</p>
+                      <div className="p-2 rounded-md bg-blue-50 border-l-2 border-blue-300">
+                        <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">To next:</p>
+                        <p className="text-blue-600 italic text-sm">{contentGuide.transitionTo}</p>
                       </div>
                     )}
                     
                     {/* Empty state if no content generated */}
                     {!contentGuide.transitionFrom && !contentGuide.keyMessages.length && !contentGuide.transitionTo && (
-                      <div className="flex items-center justify-center h-24 text-center">
+                      <div className="flex items-center justify-center h-20 text-center">
                         <div>
-                          <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-muted-foreground text-sm">Unable to extract key guidance from this script.</p>
-                          <p className="text-xs text-gray-400 mt-1">Try adding keywords like "important", "key", or specific concepts.</p>
+                          <AlertCircle className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                          <p className="text-muted-foreground text-xs">Unable to extract key guidance</p>
                         </div>
                       </div>
                     )}
@@ -258,7 +259,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     <div>
                       <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-muted-foreground font-medium">No script available</p>
-                      <p className="text-xs text-gray-400 mt-1">Add a script to this slide to see content guidance</p>
+                      <p className="text-xs text-gray-400 mt-1">Add a script to see guidance</p>
                     </div>
                   </div>
                 )}
@@ -266,38 +267,38 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
               </Card>
             </div>
           )}
-
-          {/* Script Section (55% of right pane height) */}
-          {showScript && (
-            <div className="h-[55%] p-2">
-              <Card className="h-full flex flex-col">
-                <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
-                  <h3 className="font-semibold text-base">Full Script</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {currentSlide.script ? `${currentSlide.script.split(/\s+/).length} words` : '0 words'}
-                  </Badge>
-                </div>
-                
-                <div className="flex-1 p-3 overflow-y-auto">
-                  {currentSlide.script ? (
-                    <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
-                        {currentSlide.script}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="text-center">
-                        <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-muted-foreground">No script available for this slide</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
-          )}
         </div>
+
+        {/* Bottom Row: Full Script (100% width, 40% of screen height) */}
+        {showScript && (
+          <div className="h-[40%] p-2">
+            <Card className="h-full flex flex-col">
+              <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
+                <h3 className="font-semibold text-base">Full Script</h3>
+                <Badge variant="outline" className="text-xs">
+                  {currentSlide.script ? `${currentSlide.script.split(/\s+/).length} words` : '0 words'}
+                </Badge>
+              </div>
+              
+              <div className="flex-1 p-3 overflow-y-auto">
+                {currentSlide.script ? (
+                  <div className="prose prose-sm max-w-none">
+                    <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
+                      {currentSlide.script}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-20">
+                    <div className="text-center">
+                      <AlertCircle className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                      <p className="text-muted-foreground">No script available for this slide</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Mobile Navigation (Bottom) */}
