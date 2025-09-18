@@ -7,8 +7,9 @@
  * Total: ~$0.05-0.15 per presentation (incredible value!)
  */
 export class ClaudeAIService {
-  private apiKey: string;
-  private model = 'claude-3-5-sonnet-20241022'; // Latest Sonnet with excellent vision capabilities
+  private apiKey: string = '';
+  private model: string = 'claude-3-5-sonnet-20241022';
+  private baseUrl: string = 'https://cors-anywhere.herokuapp.com/https://api.anthropic.com/v1/messages'; // Latest Sonnet with excellent vision capabilities
   
   constructor() {
     this.apiKey = localStorage.getItem('anthropic_api_key') || '';
@@ -49,7 +50,7 @@ export class ClaudeAIService {
         return { success: false, error: 'Invalid image format' };
       }
       
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'x-api-key': this.apiKey,
@@ -165,7 +166,7 @@ Return ONLY the JSON, no other text.`
     try {
       console.log('🎯 Claude matching script to slides intelligently...');
       
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'x-api-key': this.apiKey,
@@ -284,7 +285,7 @@ IMPORTANT: Each scriptSection must be complete sentences. Look for natural break
     try {
       console.log(`🎤 Claude generating expert coaching for slide ${slideNumber}...`);
       
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'x-api-key': this.apiKey,
@@ -375,7 +376,7 @@ Be specific and reference the actual slide content. Focus on techniques that top
     try {
       console.log('🔗 Testing Claude connection...');
       
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'x-api-key': this.apiKey,
