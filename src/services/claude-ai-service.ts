@@ -213,37 +213,48 @@ Return ONLY the JSON, no other text.`
       console.log('🔍 First 200 chars of response:', content.substring(0, 200));
       console.log('🔍 Last 100 chars of response:', content.substring(content.length - 100));
       
-      // Check if ClaudeJSONParser is available
-      if (typeof ClaudeJSONParser === 'undefined') {
-        console.error('❌ ClaudeJSONParser is not defined! Import issue?');
-        throw new Error('ClaudeJSONParser not available');
-      }
-      
+      // DETAILED DIAGNOSTIC EXTRACTION
       let scriptSections: string[] = [];
       
-      try {
-        console.log('🔧 Attempting to extract JSON with ClaudeJSONParser...');
-        scriptSections = ClaudeJSONParser.extractJSONArray(content);
-        console.log('✅ Successfully extracted', scriptSections.length, 'sections');
-        console.log('📝 First section preview:', scriptSections[0]?.substring(0, 100));
-      } catch (parseError) {
-        console.error('❌ ClaudeJSONParser.extractJSONArray failed:', parseError.message);
-        console.error('📊 Parser error details:', parseError);
+      const firstBracket = content.indexOf('[');
+      const lastBracket = content.lastIndexOf(']');
+      
+      console.log('📍 Bracket positions:', { first: firstBracket, last: lastBracket });
+      console.log('🔍 Content between brackets exists:', firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket);
+      
+      if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+        const jsonString = content.substring(firstBracket, lastBracket + 1);
+        console.log('🔍 Extracted JSON length:', jsonString.length);
+        console.log('🔍 Extracted JSON preview (first 200):', jsonString.substring(0, 200));
+        console.log('🔍 Extracted JSON preview (last 100):', jsonString.substring(jsonString.length - 100));
         
-        // Try manual extraction as diagnostic
-        console.log('🔧 Attempting manual JSON extraction...');
-        const jsonMatch = content.match(/\[\s*[\s\S]*?\]/);
-        if (jsonMatch) {
-          console.log('📍 Found JSON-like structure at position', content.indexOf(jsonMatch[0]));
-          try {
-            const manualParse = JSON.parse(jsonMatch[0]);
-            console.log('✅ Manual parse successful!', manualParse.length, 'items');
-            scriptSections = manualParse;
-          } catch (e) {
-            console.error('❌ Manual parse also failed:', e.message);
+        console.log('🔧 Attempting JSON.parse...');
+        try {
+          const parsed = JSON.parse(jsonString);
+          console.log('✅ JSON.parse successful!');
+          console.log('📊 Parsed type:', typeof parsed);
+          console.log('📊 Is array:', Array.isArray(parsed));
+          
+          if (Array.isArray(parsed)) {
+            scriptSections = parsed;
+            console.log('✅ Successfully extracted', scriptSections.length, 'sections');
+            console.log('📝 First section preview:', scriptSections[0]?.substring(0, 100) + '...');
+            console.log('📝 Section lengths:', scriptSections.map((s, i) => `${i+1}: ${s.length} chars`));
+          } else {
+            console.error('❌ Parsed result is not an array:', parsed);
           }
+        } catch (parseError) {
+          console.error('❌ JSON.parse failed:', parseError.message);
+          console.error('❌ Parse error details:', parseError);
+          console.log('🔍 Problematic JSON string:', jsonString);
+        }
+      } else {
+        console.error('❌ Invalid bracket positions - cannot extract JSON');
+        console.log('🔍 Searching for partial patterns...');
+        if (content.includes('[') && content.includes(']')) {
+          console.log('✓ Contains brackets but positions are invalid');
         } else {
-          console.log('❌ No JSON array pattern found in response');
+          console.log('❌ No brackets found in content at all');
         }
       }
       
