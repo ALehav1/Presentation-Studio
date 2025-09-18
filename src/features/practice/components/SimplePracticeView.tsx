@@ -191,7 +191,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
         <div className="lg:w-3/5 flex-1 flex flex-col">
           {/* Presenter Guide Section (Top 40% on desktop) */}
           {showGuide && (
-            <div className="lg:h-2/5 p-6 border-b overflow-hidden">
+            <div className="lg:h-2/5 p-6 border-b overflow-y-auto">
               <Card className="h-full p-6">
                 <h3 className="font-semibold mb-4 text-lg">Presenter Guide</h3>
                 
