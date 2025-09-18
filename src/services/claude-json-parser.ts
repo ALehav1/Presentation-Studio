@@ -1,9 +1,9 @@
-// claude-json-parser.ts - Reliable JSON extraction from Claude responses
-// Place this in src/services/claude-json-parser.ts
+// claude-json-parser.ts - Enhanced version that handles JavaScript-style arrays with comments
+// Replace your entire claude-json-parser.ts with this version
 
 /**
  * Reliably extracts JSON arrays from Claude's mixed-content responses
- * This handles all the edge cases you've encountered
+ * Now handles JavaScript-style arrays with comments
  */
 export class ClaudeJSONParser {
   /**
@@ -16,8 +16,13 @@ export class ClaudeJSONParser {
       throw new Error('Invalid content: expected non-empty string');
     }
 
-    // Strategy 1: Try to find and extract a clean JSON array first
-    // This handles most cases where JSON is somewhat isolated
+    // Strategy 1: Try to clean and parse JavaScript-style array (NEW!)
+    const jsArraySections = this.extractJavaScriptArray(content);
+    if (jsArraySections.length > 0) {
+      return jsArraySections;
+    }
+
+    // Strategy 2: Try to find and extract a clean JSON array
     const jsonArrayMatch = this.findJSONArray(content);
     if (jsonArrayMatch) {
       try {
@@ -30,20 +35,19 @@ export class ClaudeJSONParser {
       }
     }
 
-    // Strategy 2: Look for numbered or bulleted script sections
-    // Claude often formats as "1. Script text" or "- Script text"
+    // Strategy 3: Look for numbered or bulleted script sections
     const numberedSections = this.extractNumberedSections(content);
     if (numberedSections.length > 0) {
       return numberedSections;
     }
 
-    // Strategy 3: Extract quoted strings that look like script sections
+    // Strategy 4: Extract quoted strings that look like script sections
     const quotedSections = this.extractQuotedSections(content);
     if (quotedSections.length > 0) {
       return quotedSections;
     }
 
-    // Strategy 4: Emergency fallback - split by clear paragraph breaks
+    // Strategy 5: Emergency fallback - split by clear paragraph breaks
     const paragraphSections = this.extractParagraphSections(content);
     if (paragraphSections.length > 0) {
       return paragraphSections;
@@ -54,6 +58,84 @@ export class ClaudeJSONParser {
       'Response format may have changed. Raw content: ' + 
       content.substring(0, 200) + '...'
     );
+  }
+
+  /**
+   * NEW: Extract JavaScript-style array with comments
+   * Handles Claude's format with // comments and placeholders
+   */
+  private static extractJavaScriptArray(content: string): string[] {
+    const sections: string[] = [];
+    
+    // Find the array bounds
+    const startIdx = content.indexOf('[');
+    const endIdx = content.lastIndexOf(']');
+    
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+      return [];
+    }
+    
+    // Extract the array content
+    const arrayContent = content.substring(startIdx + 1, endIdx);
+    
+    // Split by lines and process
+    const lines = arrayContent.split('\n');
+    let currentString = '';
+    let inString = false;
+    let stringChar = '';
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      // Skip empty lines and comments
+      if (!trimmed || trimmed.startsWith('//')) {
+        continue;
+      }
+      
+      // Handle placeholder text like [Content not clearly present...]
+      if (trimmed.startsWith('[') && trimmed.includes('Content not') && trimmed.endsWith(',')) {
+        // Add an empty string for missing content
+        sections.push('');
+        continue;
+      }
+      if (trimmed.startsWith('[') && trimmed.includes('Content not') && trimmed.endsWith(']')) {
+        // Add an empty string for missing content
+        sections.push('');
+        continue;
+      }
+      
+      // Process string content
+      for (let i = 0; i < trimmed.length; i++) {
+        const char = trimmed[i];
+        
+        if (!inString) {
+          if (char === '"' || char === "'") {
+            inString = true;
+            stringChar = char;
+            currentString = '';
+          }
+        } else {
+          if (char === stringChar && trimmed[i - 1] !== '\\') {
+            // End of string found
+            inString = false;
+            if (currentString.trim()) {
+              sections.push(currentString);
+            }
+            currentString = '';
+          } else {
+            currentString += char;
+          }
+        }
+      }
+      
+      // Handle multi-line strings
+      if (inString && currentString) {
+        currentString += ' '; // Add space for line continuation
+      }
+    }
+    
+    // Filter out empty sections but keep placeholders
+    return sections;
   }
 
   /**
@@ -72,11 +154,21 @@ export class ClaudeJSONParser {
     if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
       const candidate = cleanContent.substring(firstBracket, lastBracket + 1);
       
-      // Quick validation: should start with [ and end with ]
-      if (candidate.trim().startsWith('[') && candidate.trim().endsWith(']')) {
-        // Additional validation: should contain quotes (for strings)
-        if (candidate.includes('"') || candidate.includes("'")) {
-          return candidate;
+      // Clean up JavaScript-style array to make it JSON-compatible
+      const cleaned = candidate
+        .replace(/\/\/[^\n\r]*/g, '') // Remove // comments
+        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
+        .replace(/,(\s*[\]}])/g, '$1') // Remove trailing commas
+        .replace(/\[Content[^\]]*\]/g, '""'); // Replace placeholders with empty strings
+      
+      // Quick validation
+      if (cleaned.trim().startsWith('[') && cleaned.trim().endsWith(']')) {
+        try {
+          // Test parse
+          JSON.parse(cleaned);
+          return cleaned;
+        } catch {
+          // Not valid JSON even after cleaning
         }
       }
     }
@@ -208,8 +300,13 @@ export class ClaudeJSONParser {
       };
     }
     
-    // Check that sections have reasonable length
-    const avgLength = sections.reduce((sum, s) => sum + s.length, 0) / sections.length;
+    // Check that sections have reasonable length (excluding empty placeholders)
+    const nonEmptySections = sections.filter(s => s.length > 0);
+    if (nonEmptySections.length === 0) {
+      return { valid: false, message: 'All sections are empty' };
+    }
+    
+    const avgLength = nonEmptySections.reduce((sum, s) => sum + s.length, 0) / nonEmptySections.length;
     if (avgLength < 20) {
       return { valid: false, message: 'Sections are too short to be meaningful' };
     }
@@ -218,69 +315,39 @@ export class ClaudeJSONParser {
   }
 }
 
-// Usage example for your claude-ai-service.ts file:
-export async function parseClaudeScriptMatching(
-  claudeResponse: string, 
-  expectedSlideCount: number
-): Promise<string[]> {
-  try {
-    console.log('📝 Parsing Claude response for script matching...');
-    
-    // Extract the JSON array
-    const sections = ClaudeJSONParser.extractJSONArray(claudeResponse);
-    
-    // Validate the extraction
-    const validation = ClaudeJSONParser.validateExtractedSections(
-      sections, 
-      expectedSlideCount
-    );
-    
-    if (!validation.valid) {
-      console.warn(`⚠️ Validation warning: ${validation.message}` );
-      // You might still want to use the sections even if validation fails
-      // depending on your app's needs
-    }
-    
-    console.log(`✅ Successfully extracted ${sections.length} script sections` );
-    return sections;
-    
-  } catch (error) {
-    console.error('❌ Failed to parse Claude response:', error.message);
-    console.log('📊 Raw response preview:', claudeResponse.substring(0, 500));
-    throw error;
-  }
-}
-
-// Alternative: Force Claude to use a specific format with strong prompting
+// Alternative prompt that might help avoid JavaScript-style responses
 export function buildStrictJSONPrompt(
   slideAnalyses: any[], 
   fullScript: string
 ): string {
-  return `You must respond with ONLY a JSON array. No other text whatsoever.
+  return `Return a pure JSON array of script sections. 
 
-CRITICAL INSTRUCTIONS:
-1. Your ENTIRE response must be valid JSON
-2. Start with [ and end with ]
-3. No text before the [
-4. No text after the ]
-5. No explanations
-6. No notes
-7. No commentary
-8. ONLY the JSON array
+CRITICAL RULES:
+- NO comments (no // or /* */ )
+- NO placeholders - if no content for a slide, use empty string ""
+- NO trailing commas
+- ONLY valid JSON syntax
+- Start with [ and end with ]
 
-Match this script to ${slideAnalyses.length} slides:
+Match this script to exactly ${slideAnalyses.length} slides.
 
-${slideAnalyses.map((s, i) => `Slide ${i + 1}: ${s.mainTopic}` ).join('\n')}
+Slides to match:
+${slideAnalyses.map((s, i) => `${i + 1}. ${s.mainTopic}`).join('\n')}
 
 Script to divide:
 ${fullScript}
 
-Respond with EXACTLY this format (no other text):
+Return EXACTLY ${slideAnalyses.length} strings in this format:
 [
-  "First part of script for slide 1...",
-  "Second part of script for slide 2...",
-  "Third part of script for slide 3..."
+  "Script for slide 1",
+  "Script for slide 2",
+  "Script for slide 3",
+  "Script for slide 4",
+  "Script for slide 5",
+  "Script for slide 6",
+  "Script for slide 7"
 ]
 
-FINAL REMINDER: Your response must start with [ and end with ] with nothing else.`;
+If no content matches a slide, use empty string "". 
+Do not use placeholders or comments.`;
 }
