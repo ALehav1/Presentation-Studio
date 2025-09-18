@@ -218,9 +218,13 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
   console.log('🔍 PARSING SCRIPT:', { 
     length: fullScript.length, 
     maxSlides,
-    preview: fullScript.substring(0, 200),
-    fullScript: fullScript // DEBUG: Show full script
+    preview: fullScript.substring(0, 200)
   });
+  
+  // Add debug check for expected slides
+  if (maxSlides) {
+    console.log(`📊 Expected slides: ${maxSlides}`);
+  }
   
   const result: ParsedSlideScript[] = [];
   let sections: string[] = [];
@@ -324,11 +328,7 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
     sections = paragraphs;
   }
   
-  // Limit sections based on maxSlides if provided
-  if (maxSlides && sections.length > maxSlides) {
-    console.log(`⚠️ Truncating ${sections.length} sections to ${maxSlides} slides`);
-    sections = sections.slice(0, maxSlides);
-  }
+  // Note: We handle section-to-slide mismatch at the end of this function
   
   // Process each section
   sections.forEach((section, index) => {
@@ -363,6 +363,61 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
     wordCounts: result.map(r => r.processed.wordCount),
     sections: result.map(r => r.script.substring(0, 50) + '...')
   });
+
+  // SMART FIX: Handle mismatch between script sections and slides
+  if (maxSlides && result.length < maxSlides) {
+    console.log(`⚠️ Script sections (${result.length}) < Slides (${maxSlides})`);
+    
+    // Check if the last section might be a long conclusion that should be split
+    if (result.length > 0) {
+      const lastSection = result[result.length - 1];
+      const lastWordCount = lastSection.processed.wordCount;
+      
+      // If last section is unusually long (>150 words), split it
+      if (lastWordCount > 150 && result.length === maxSlides - 1) {
+        console.log('📄 Splitting long conclusion across two slides');
+        
+        // Split the last section roughly in half
+        const sentences = lastSection.script.split(/[.!?]+/).filter(s => s.trim());
+        const midpoint = Math.floor(sentences.length / 2);
+        
+        const firstHalf = sentences.slice(0, midpoint).join('. ').trim() + '.';
+        const secondHalf = sentences.slice(midpoint).join('. ').trim() + '.';
+        
+        // Update the last section with first half
+        result[result.length - 1] = {
+          slideNumber: result.length,
+          script: firstHalf,
+          processed: processScript(firstHalf)
+        };
+        
+        // Add new section with second half
+        result.push({
+          slideNumber: result.length + 1,
+          script: secondHalf,
+          processed: processScript(secondHalf)
+        });
+        
+        console.log('✅ Split conclusion into two slides');
+      } else {
+        // Otherwise, pad with empty sections
+        while (result.length < maxSlides) {
+          console.log(`📝 Adding empty section for slide ${result.length + 1}`);
+          result.push({
+            slideNumber: result.length + 1,
+            script: '',
+            processed: processScript('')
+          });
+        }
+      }
+    }
+  }
+
+  // Also handle case where we have MORE sections than slides
+  if (maxSlides && result.length > maxSlides) {
+    console.log(`⚠️ Truncating ${result.length} sections to ${maxSlides} slides`);
+    return result.slice(0, maxSlides);
+  }
   
   return result;
 }
