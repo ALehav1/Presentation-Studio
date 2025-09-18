@@ -42,8 +42,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
 
   // Memoize slides array to prevent useEffect dependency issues
   const slides = useMemo(() => currentPresentation?.slides || [], [currentPresentation?.slides]);
-  const currentSlide = currentPresentation?.slides[currentSlideIndex];
-  const totalSlides = currentPresentation?.slides.length || 0;
+  const currentSlide = slides[currentSlideIndex];
+  const totalSlides = slides.length;
   
   // DEBUG: Track script changes in practice mode
   useEffect(() => {
@@ -144,14 +144,14 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
       {/* Header with navigation and controls */}
       <div className="flex-shrink-0 border-b bg-background">
         <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack} className="min-h-[44px]">
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Back to Setup</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-          <h1 className="text-lg font-semibold">Practice Mode</h1>
-        </div>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={onBack} className="min-h-[44px]">
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Back to Setup</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+            <h1 className="text-lg font-semibold">Practice Mode</h1>
+          </div>
         
         {/* Slide Navigation */}
         <div className="flex items-center gap-4">
@@ -202,6 +202,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             <span className="hidden sm:inline">Script</span>
             <span className="sm:hidden">📝</span>
           </Button>
+        </div>
         </div>
       </div>
 

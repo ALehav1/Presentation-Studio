@@ -18,13 +18,14 @@ export default function App() {
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
   
-  // Load images from IndexedDB when app starts with a persisted presentation
+  // Load images from IndexedDB when app starts with a persisted presentation  
   useEffect(() => {
     if (currentPresentation && currentPresentation.slides.some(slide => !slide.imageUrl || slide.imageUrl.trim() === '')) {
       console.log('📷 Loading images from IndexedDB for persisted presentation...');
       loadImagesFromIndexedDB();
     }
-  }, [currentPresentation, loadImagesFromIndexedDB]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPresentation?.id]); // Only run when presentation changes, not when function changes
   
   // Check if setup is complete
   useEffect(() => {
