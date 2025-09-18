@@ -176,41 +176,18 @@ Return ONLY the JSON, no other text.`
           max_tokens: 4000,
           messages: [{
             role: 'user',
-            content: `You are an expert presentation coach. Your job is to intelligently match a speaker's script to their slides based on topic alignment.
+            content: `You are an expert presentation coach. Match script content to slide topics.
 
-SLIDE CONTENTS:
-${slideAnalyses.map((analysis, i) => `
-Slide ${i + 1}:
-- Main Topic: ${analysis.mainTopic}
-- Key Points: ${analysis.keyPoints?.join(', ') || 'None'}
-- All Text: ${analysis.allText}
-- Visual Elements: ${analysis.visualElements?.join(', ') || 'None'}
-`).join('\n')}
+SLIDES (${slideAnalyses.length} total):
+${slideAnalyses.map((analysis, i) => `${i + 1}. ${analysis.mainTopic}`).join('\n')}
 
-SPEAKER'S FULL SCRIPT:
-${fullScript}
+SCRIPT (${Math.round(fullScript.length / 4)} tokens):
+${fullScript.substring(0, 2000)}${fullScript.length > 2000 ? '...[truncated]' : ''}
 
-TASK:
-1. Divide the script into ${slideAnalyses.length} logical sections
-2. Match each section to the most relevant slide based on topic/content alignment
-3. Ensure natural sentence boundaries (no mid-sentence cuts)
-4. Provide confidence scores (0-100) and detailed reasoning
-5. Identify key alignment points between script and slide content
+Match script sections to slide topics. Return JSON array with ${slideAnalyses.length} script portions:
+["script for slide 1", "script for slide 2", ...]
 
-Return ONLY a JSON object with this structure:
-{
-  "matches": [
-    {
-      "slideNumber": 1,
-      "scriptSection": "Complete sentences that match this slide...",
-      "confidence": 95,
-      "reasoning": "Detailed explanation of why this script matches this slide",
-      "keyAlignment": ["specific topic overlap", "matching concepts"]
-    }
-  ]
-}
-
-IMPORTANT: Each scriptSection must be complete sentences. Look for natural breakpoints where topics change.`
+Focus on TOPIC ALIGNMENT, not word count.`
           }]
         })
       });
