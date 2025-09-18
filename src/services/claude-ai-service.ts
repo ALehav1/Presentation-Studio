@@ -1,4 +1,5 @@
 // src/services/claude-ai-service.ts
+import { ClaudeJSONParser, buildStrictJSONPrompt } from './claude-json-parser';
 // Using Claude Sonnet 3.5 - Superior vision and reasoning for presentation analysis
 
 /**
@@ -142,7 +143,7 @@ Return ONLY the JSON, no other text.`
 
   /**
    * PREMIUM FEATURE 2: Intelligent script-to-slide matching with Claude's reasoning
-   * This is where Claude's superior reasoning shines - perfect topic alignment
+   * Now with robust JSON parsing that handles Claude's commentary
    */
   async matchScriptToSlidesIntelligently(
     slideAnalyses: any[],
@@ -159,11 +160,17 @@ Return ONLY the JSON, no other text.`
     error?: string;
   }> {
     if (!this.apiKey) {
-      return { success: false, error: 'API key required' };
+      return { 
+        success: false, 
+        error: 'Please add your Anthropic API key in settings' 
+      };
     }
 
     try {
       console.log('🎯 Claude matching script to slides intelligently...');
+      
+      // Build a prompt that strongly encourages JSON-only response
+      const prompt = buildStrictJSONPrompt(slideAnalyses, fullScript);
       
       const response = await fetch(this.apiRoute, {
         method: 'POST',
@@ -176,22 +183,7 @@ Return ONLY the JSON, no other text.`
           max_tokens: 4000,
           messages: [{
             role: 'user',
-            content: `You are an expert presentation coach. Match script content to slide content based on topic alignment.
-
-SLIDE CONTENTS:
-${slideAnalyses.map((analysis, i) => `
-Slide ${i + 1}: ${analysis.mainTopic}
-Text on slide: ${analysis.allText}
-Key topics: ${analysis.keyPoints.join(', ')}
-`).join('\n')}
-
-FULL SPEAKER SCRIPT:
-${fullScript}
-
-TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics.
-
-CRITICAL: Return ONLY a valid JSON array with no commentary:
-["script portion for slide 1", "script portion for slide 2", ...]`
+            content: prompt
           }]
         })
       });
@@ -205,59 +197,194 @@ CRITICAL: Return ONLY a valid JSON array with no commentary:
       }
 
       const data = await response.json();
-      const content = data.content[0]?.text || '';
+      const content = data.content?.[0]?.text || '';
       
-      try {
-        // Bulletproof JSON extraction: first [ to last ]
-        const firstBracket = content.indexOf('[');
-        const lastBracket = content.lastIndexOf(']');
-        
-        if (firstBracket === -1 || lastBracket === -1 || firstBracket >= lastBracket) {
-          throw new Error('No valid JSON array found in response');
-        }
-        
-        const jsonStr = content.substring(firstBracket, lastBracket + 1);
-        const scriptSections = JSON.parse(jsonStr);
-        
-        if (!Array.isArray(scriptSections)) {
-          throw new Error('Response is not an array');
-        }
-        
-        if (scriptSections.length !== slideAnalyses.length) {
-          throw new Error(`Expected ${slideAnalyses.length} sections, got ${scriptSections.length}`);
-        }
-        
-        console.log('✅ Claude matched script to slides with bulletproof parsing:', scriptSections.length, 'sections');
-        
-        const result = {
-          matches: scriptSections.map((section: string, i: number) => ({
-            slideNumber: i + 1,
-            scriptSection: section,
-            confidence: 95,
-            reasoning: 'AI content matching with bulletproof parsing',
-            keyAlignment: []
-          }))
-        };
-        
-        return {
-          success: true,
-          matches: result.matches
-        };
-      } catch (parseError) {
-        console.error('❌ Failed to parse matching response:', data);
-        return {
-          success: false,
-          error: 'Invalid matching response format'
-        };
+      if (!content) {
+        throw new Error('Empty response from Claude');
       }
+
+      console.log('📄 Raw Claude response length:', content.length);
       
-    } catch (error) {
-      console.error('❌ Script matching error:', error);
+      // Use our robust parser to extract the JSON array
+      const scriptSections = ClaudeJSONParser.extractJSONArray(content);
+      
+      // Validate we got reasonable results
+      const validation = ClaudeJSONParser.validateExtractedSections(
+        scriptSections,
+        slideAnalyses.length
+      );
+      
+      if (!validation.valid) {
+        console.warn(`⚠️ Script matching validation: ${validation.message}`);
+        
+        // If we got some sections but wrong count, try to adjust
+        if (scriptSections.length > 0) {
+          const adjustedSections = this.adjustSectionCount(scriptSections, slideAnalyses.length);
+          return {
+            success: true,
+            matches: adjustedSections.map((section: string, i: number) => ({
+              slideNumber: i + 1,
+              scriptSection: section,
+              confidence: 85,
+              reasoning: 'AI content matching with count adjustment',
+              keyAlignment: []
+            }))
+          };
+        }
+        
+        // Otherwise fall back to semantic splitter
+        throw new Error(validation.message);
+      }
+
+      console.log(`✅ Successfully matched ${scriptSections.length} script sections to slides`);
+      
+      const result = {
+        matches: scriptSections.map((section: string, i: number) => ({
+          slideNumber: i + 1,
+          scriptSection: section,
+          confidence: 95,
+          reasoning: 'AI content matching with robust parsing',
+          keyAlignment: []
+        }))
+      };
+      
       return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Matching failed'
+        success: true,
+        matches: result.matches
+      };
+
+    } catch (error) {
+      console.error('❌ Script matching failed:', error.message);
+      
+      // Fall back to semantic splitter
+      console.log('📊 Falling back to semantic script splitter...');
+      const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
+      
+      return {
+        success: true,
+        matches: fallbackSections.map((section: string, i: number) => ({
+          slideNumber: i + 1,
+          scriptSection: section,
+          confidence: 70,
+          reasoning: 'Semantic script allocation fallback',
+          keyAlignment: []
+        }))
       };
     }
+  }
+
+  /**
+   * Adjust section count if we got close but not exact
+   */
+  private adjustSectionCount(sections: string[], targetCount: number): string[] {
+    if (sections.length === targetCount) {
+      return sections;
+    }
+    
+    if (sections.length > targetCount) {
+      // Merge the shortest adjacent sections
+      console.log(`📝 Merging ${sections.length} sections down to ${targetCount}`);
+      const result = [...sections];
+      
+      while (result.length > targetCount) {
+        // Find shortest adjacent pair
+        let shortestPairIndex = 0;
+        let shortestPairLength = result[0].length + result[1].length;
+        
+        for (let i = 1; i < result.length - 1; i++) {
+          const pairLength = result[i].length + result[i + 1].length;
+          if (pairLength < shortestPairLength) {
+            shortestPairIndex = i;
+            shortestPairLength = pairLength;
+          }
+        }
+        
+        // Merge the pair
+        result[shortestPairIndex] = result[shortestPairIndex] + ' ' + result[shortestPairIndex + 1];
+        result.splice(shortestPairIndex + 1, 1);
+      }
+      
+      return result;
+    }
+    
+    if (sections.length < targetCount) {
+      // Split the longest sections
+      console.log(`📝 Splitting ${sections.length} sections up to ${targetCount}`);
+      const result = [...sections];
+      
+      while (result.length < targetCount) {
+        // Find longest section
+        let longestIndex = 0;
+        let longestLength = result[0].length;
+        
+        for (let i = 1; i < result.length; i++) {
+          if (result[i].length > longestLength) {
+            longestIndex = i;
+            longestLength = result[i].length;
+          }
+        }
+        
+        // Split at midpoint sentence boundary
+        const toSplit = result[longestIndex];
+        const sentences = toSplit.match(/[^.!?]+[.!?]+/g) || [toSplit];
+        const midPoint = Math.floor(sentences.length / 2);
+        
+        const firstHalf = sentences.slice(0, midPoint).join(' ');
+        const secondHalf = sentences.slice(midPoint).join(' ');
+        
+        result[longestIndex] = firstHalf;
+        result.splice(longestIndex + 1, 0, secondHalf);
+      }
+      
+      return result;
+    }
+    
+    return sections;
+  }
+
+  /**
+   * Fallback semantic splitter when Claude matching fails
+   */
+  private fallbackSemanticSplit(script: string, slideCount: number): string[] {
+    console.log('🔄 Using semantic script splitter as fallback');
+    
+    // Split by paragraphs first
+    const paragraphs = script.split(/\n\n+/).filter(p => p.trim().length > 0);
+    
+    if (paragraphs.length >= slideCount) {
+      // We have enough paragraphs, distribute them
+      const sections: string[] = [];
+      const parasPerSlide = Math.ceil(paragraphs.length / slideCount);
+      
+      for (let i = 0; i < slideCount; i++) {
+        const start = i * parasPerSlide;
+        const end = Math.min(start + parasPerSlide, paragraphs.length);
+        sections.push(paragraphs.slice(start, end).join('\n\n'));
+      }
+      
+      return sections;
+    }
+    
+    // Not enough paragraphs, split by sentences
+    const sentences = script.match(/[^.!?]+[.!?]+/g) || [script];
+    const sentencesPerSlide = Math.ceil(sentences.length / slideCount);
+    const sections: string[] = [];
+    
+    for (let i = 0; i < slideCount; i++) {
+      const start = i * sentencesPerSlide;
+      const end = Math.min(start + sentencesPerSlide, sentences.length);
+      sections.push(sentences.slice(start, end).join(' ').trim());
+    }
+    
+    // Ensure we have exactly the right number of sections
+    while (sections.length < slideCount) {
+      sections.push(''); // Add empty sections if needed
+    }
+    while (sections.length > slideCount) {
+      sections.pop(); // Remove extra sections
+    }
+    
+    return sections;
   }
 
   /**
