@@ -2,19 +2,150 @@
  * Comprehensive test suite for PresentationStudio
  * Run these in browser console after loading the app
  */
+import { usePresentationStore } from '../core/store/presentation';
 
-declare global {
-  interface Window {
-    runAllTests: () => void;
-    testScriptAllocation: () => void;
-    testBidirectionalSync: () => void;
-    testMobileLayout: () => void;
-    testEdgeCases: () => void;
+// Test 1: Script Allocation with Semantic Detection
+function testScriptAllocation() {
+  console.log('\n📊 TESTING SCRIPT ALLOCATION');
+  console.log('============================');
+  
+  const state = usePresentationStore.getState();
+  const presentation = state.currentPresentation;
+  
+  if (!presentation) {
+    console.error('❌ No presentation loaded. Upload a PDF first!');
+    return false;
   }
+  
+  // Check if script was distributed
+  const scripts = presentation.slides.map((s, i) => ({
+    slide: i + 1,
+    words: s.script?.split(/\s+/).filter(w => w.length > 0).length || 0,
+    hasTransition: s.script?.match(/Moving on|Next|Finally|Now|Let's/i) ? '✅' : '',
+    preview: s.script?.substring(0, 50) + '...'
+  }));
+  
+  console.table(scripts);
+  
+  // Analyze distribution quality
+  const wordCounts = scripts.map(s => s.words);
+  const total = wordCounts.reduce((a, b) => a + b, 0);
+  const variance = Math.max(...wordCounts) - Math.min(...wordCounts);
+  const allHaveContent = wordCounts.every(w => w > 0);
+  
+  console.log('\n📈 Distribution Analysis:');
+  console.log('Total words:', total);
+  console.log('Distribution variance:', variance);
+  console.log('Semantic sections detected:', presentation.slides.some(s => 
+    s.script?.match(/Moving on|Next|Finally/i)) ? 'Yes' : 'No');
+  
+  const passed = allHaveContent && variance < 150;
+  console.log('\n' + (passed ? '✅ SCRIPT ALLOCATION: PASSED' : '❌ SCRIPT ALLOCATION: FAILED'));
+  
+  return passed;
 }
 
-// Test 1: Script Allocation System
-window.testScriptAllocation = function() {
+// Test 2: Bidirectional Sync
+function testBidirectionalSync() {
+  console.log('\n🔄 TESTING BIDIRECTIONAL SYNC');
+  console.log('==============================');
+  
+  const store = usePresentationStore.getState();
+  const testResults = [];
+  
+  // Test Setup → Practice
+  const slide1Id = store.currentPresentation?.slides[0]?.id;
+  if (slide1Id) {
+    store.updateSlideScript(slide1Id, 'TEST FROM SETUP MODE', 'setup');
+    const afterSetup = store.currentPresentation?.slides[0]?.script;
+    testResults.push({
+      test: 'Setup → Store',
+      result: afterSetup === 'TEST FROM SETUP MODE' ? '✅ PASS' : '❌ FAIL'
+    });
+  }
+  
+  // Test Practice → Setup
+  const slide2Id = store.currentPresentation?.slides[1]?.id;
+  if (slide2Id) {
+    store.updateSlideScript(slide2Id, 'TEST FROM PRACTICE MODE', 'practice');
+    const afterPractice = store.currentPresentation?.slides[1]?.script;
+    testResults.push({
+      test: 'Practice → Store',
+      result: afterPractice === 'TEST FROM PRACTICE MODE' ? '✅ PASS' : '❌ FAIL'
+    });
+  }
+  
+  // Check last edit tracking
+  testResults.push({
+    test: 'Edit tracking',
+    result: store.lastEditLocation === 'practice' ? '✅ PASS' : '❌ FAIL'
+  });
+  
+  console.table(testResults);
+  
+  const passed = testResults.every(t => t.result.includes('✅'));
+  console.log('\n' + (passed ? '✅ SYNC TEST: PASSED' : '❌ SYNC TEST: FAILED'));
+  
+  return passed;
+}
+
+// Test 3: Mobile Layout
+function testMobileLayout() {
+  console.log('\n📱 TESTING MOBILE LAYOUT');
+  console.log('========================');
+  
+  const hasHScroll = document.body.scrollWidth > window.innerWidth;
+  const buttons = Array.from(document.querySelectorAll('button'));
+  const smallButtons = buttons.filter(btn => {
+    const rect = btn.getBoundingClientRect();
+    return rect.height < 44 || rect.width < 44;
+  });
+  
+  console.log('Horizontal scroll:', hasHScroll ? '❌ Yes' : '✅ No');
+  console.log('Small buttons:', smallButtons.length === 0 ? '✅ None' : `❌ ${smallButtons.length} found`);
+  
+  const passed = !hasHScroll && smallButtons.length === 0;
+  console.log('\n' + (passed ? '✅ MOBILE TEST: PASSED' : '❌ MOBILE TEST: FAILED'));
+  
+  return passed;
+}
+
+// Run all tests
+function runAllTests() {
+  console.clear();
+  console.log('🧪 PRESENTATIONSTUDIO COMPREHENSIVE TEST SUITE');
+  console.log('==============================================');
+  console.log('Testing improved features:\n');
+  
+  const results = {
+    scriptAllocation: testScriptAllocation(),
+    bidirectionalSync: testBidirectionalSync(),
+    mobileLayout: testMobileLayout()
+  };
+  
+  console.log('\n📊 FINAL RESULTS:');
+  console.log('================');
+  Object.entries(results).forEach(([test, passed]) => {
+    console.log(`${test}: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+  });
+  
+  const allPassed = Object.values(results).every(r => r === true);
+  console.log('\n' + (allPassed ? 
+    '🎉 ALL TESTS PASSED! Ship it! 🚀' : 
+    '⚠️ Some tests failed. Review the output above.'));
+  
+  return allPassed;
+}
+
+// Make functions globally accessible
+if (typeof window !== 'undefined') {
+  (window as any).runAllTests = runAllTests;
+  (window as any).testScriptAllocation = testScriptAllocation;
+  (window as any).testBidirectionalSync = testBidirectionalSync;
+  (window as any).testMobileLayout = testMobileLayout;
+}
+
+export { runAllTests, testScriptAllocation, testBidirectionalSync, testMobileLayout };
   console.log('\n📊 TEST 1: SCRIPT ALLOCATION SYSTEM');
   console.log('=====================================');
   

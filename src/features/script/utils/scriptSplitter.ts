@@ -1,13 +1,25 @@
 /**
- * Simple, direct script splitter that actually works
+ * Intelligent script splitter with semantic awareness and natural break detection
  */
 export class ScriptSplitter {
   /**
-   * Split script evenly across slides using dynamic programming with boundary scoring
+   * Split script intelligently across slides using semantic analysis and natural breaks
    */
   static splitScriptEvenly(fullScript: string, slideCount: number): string[] {
     if (!fullScript || slideCount === 0) return Array(slideCount).fill('');
     
+    console.log('🧠 Starting intelligent script allocation for', slideCount, 'slides');
+    
+    // Try semantic-based splitting first
+    const sections = this.detectSemanticSections(fullScript);
+    console.log('📑 Detected', sections.length, 'semantic sections');
+    
+    if (sections.length > 0 && sections.length <= slideCount * 2) {
+      // We have good natural sections, use them
+      return this.distributeSemanticSections(sections, slideCount);
+    }
+    
+    // Fall back to sentence-based allocation
     const sentences = this.extractSentences(fullScript);
     if (sentences.length === 0) return Array(slideCount).fill('');
     
@@ -24,32 +36,51 @@ export class ScriptSplitter {
     const totalWords = sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0);
     const targetWordsPerSlide = totalWords / slideCount;
     
-    // Use dynamic allocation
-    return this.dynamicAllocation(sentences, slideCount, targetWordsPerSlide);
+    // Use improved dynamic allocation with transition awareness
+    return this.intelligentAllocation(sentences, slideCount, targetWordsPerSlide);
   }
   
   /**
-   * Detect natural sections in the script
+   * Detect semantic sections using multiple patterns and transition words
    */
-  private static detectSections(script: string): string[] {
-    // Split by common section patterns
+  private static detectSemanticSections(script: string): string[] {
     const lines = script.split('\n');
     const sections: string[] = [];
     let currentSection = '';
     
+    // Common transition phrases that indicate slide changes
+    const transitionPatterns = [
+      /^(Moving on|Next|Now|Let's look at|Turning to|In conclusion|Finally|First|Second|Third)/i,
+      /^(Slide \d+|Section \d+|Part \d+|Chapter \d+)/i,
+      /^[A-Z][A-Z\s]+:/,  // ALL CAPS with colon
+      /^#{1,3}\s+/,       // Markdown headers  
+      /^---+$/,           // Horizontal rules
+      /^(\d+\.|\w+\))/,   // Numbered/lettered lists
+    ];
+    
+    // Transition phrases within sentences
+    const inlineTransitions = [
+      'moving on', 'next slide', 'let\'s turn to', 'now let\'s look at',
+      'in conclusion', 'to summarize', 'finally', 'last but not least',
+      'first', 'second', 'third', 'another important point'
+    ];
+    
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+      const line = lines[i].trim();
       const nextLine = lines[i + 1] || '';
       
-      // Check if this looks like a section header
-      const isSectionBreak = 
-        /^(Opening|Documentation|Capability|Activation|Proof|Slide \d+|SECTION|Chapter)/i.test(line) ||
-        /^[A-Z][A-Z\s]+:/.test(line) || // ALL CAPS with colon
-        /^#{1,3}\s+/.test(line) || // Markdown headers
-        /^---+$/.test(line) || // Horizontal rules
-        (line === '' && nextLine !== '' && currentSection.length > 100); // Paragraph breaks
+      // Check for explicit section markers
+      const isExplicitBreak = transitionPatterns.some(pattern => pattern.test(line));
       
-      if (isSectionBreak && currentSection.trim()) {
+      // Check for inline transitions
+      const hasInlineTransition = inlineTransitions.some(phrase => 
+        line.toLowerCase().includes(phrase)
+      );
+      
+      // Check for natural paragraph breaks (empty line + substantial content)
+      const isNaturalBreak = line === '' && nextLine.trim() !== '' && currentSection.length > 150;
+      
+      if ((isExplicitBreak || hasInlineTransition || isNaturalBreak) && currentSection.trim()) {
         sections.push(currentSection.trim());
         currentSection = line;
       } else {
@@ -62,7 +93,96 @@ export class ScriptSplitter {
       sections.push(currentSection.trim());
     }
     
-    return sections.length > 0 ? sections : [script];
+    console.log('📊 Section detection results:', sections.map((s, i) => `Section ${i+1}: ${s.split(' ').length} words`));
+    return sections.filter(s => s.length > 10); // Filter out very short sections
+  }
+  
+  /**
+   * Distribute semantic sections across slides intelligently
+   */
+  private static distributeSemanticSections(sections: string[], slideCount: number): string[] {
+    const result = Array(slideCount).fill('');
+    
+    if (sections.length === slideCount) {
+      // Perfect match - one section per slide
+      console.log('🎯 Perfect section match: 1 section per slide');
+      return sections;
+    }
+    
+    if (sections.length < slideCount) {
+      // Fewer sections than slides - split larger sections
+      console.log('📂 Fewer sections than slides, splitting largest sections');
+      const workingSections = [...sections];
+      
+      while (workingSections.length < slideCount) {
+        // Find the section with most words
+        let largestIndex = 0;
+        let largestWordCount = 0;
+        
+        workingSections.forEach((section, index) => {
+          const wordCount = section.split(/\s+/).length;
+          if (wordCount > largestWordCount) {
+            largestWordCount = wordCount;
+            largestIndex = index;
+          }
+        });
+        
+        // Split the largest section at a natural break
+        const toSplit = workingSections[largestIndex];
+        const splitPoint = this.findBestSplitPoint(toSplit);
+        const firstHalf = toSplit.substring(0, splitPoint).trim();
+        const secondHalf = toSplit.substring(splitPoint).trim();
+        
+        workingSections[largestIndex] = firstHalf;
+        workingSections.splice(largestIndex + 1, 0, secondHalf);
+      }
+      
+      return workingSections.slice(0, slideCount);
+    }
+    
+    // More sections than slides - combine related sections
+    console.log('🔗 More sections than slides, combining related content');
+    const sectionsPerSlide = Math.ceil(sections.length / slideCount);
+    
+    for (let i = 0; i < slideCount; i++) {
+      const start = i * sectionsPerSlide;
+      const end = Math.min(start + sectionsPerSlide, sections.length);
+      const combinedSections = sections.slice(start, end);
+      result[i] = combinedSections.join('\n\n');
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Find the best point to split a section (sentence boundary)
+   */
+  private static findBestSplitPoint(text: string): number {
+    const sentences = text.split(/[.!?]+\s+/);
+    const midPoint = Math.floor(sentences.length / 2);
+    
+    // Find the character position of the mid-sentence
+    let charCount = 0;
+    for (let i = 0; i < midPoint; i++) {
+      charCount += sentences[i].length + 2; // +2 for punctuation and space
+    }
+    
+    return Math.min(charCount, text.length - 50); // Leave at least 50 chars for second half
+  }
+  
+  /**
+   * Check if a sentence contains transition words indicating a slide break
+   */
+  private static hasTransitionWords(sentence: string): boolean {
+    const transitionWords = [
+      'moving on', 'next', 'now', 'let\'s look at', 'turning to',
+      'in conclusion', 'finally', 'first', 'second', 'third',
+      'another point', 'additionally', 'furthermore', 'however',
+      'on the other hand', 'meanwhile', 'subsequently'
+    ];
+    
+    const lowerSentence = sentence.toLowerCase();
+    return transitionWords.some(phrase => lowerSentence.includes(phrase));
   }
   
   /**
@@ -163,12 +283,12 @@ export class ScriptSplitter {
   }
   
   /**
-   * Dynamic allocation with flexible boundary scoring
+   * Intelligent allocation with transition awareness and semantic understanding
    */
-  private static dynamicAllocation(
+  private static intelligentAllocation(
     sentences: string[], 
     slideCount: number, 
-    _targetWords: number // Prefix with underscore to indicate intentionally unused
+    targetWords: number
   ): string[] {
     const result: string[] = [];
     let sentenceIndex = 0;
@@ -206,10 +326,19 @@ export class ScriptSplitter {
           continue;
         }
         
+        // Check for transition words that suggest slide break
+        const hasTransition = this.hasTransitionWords(sentence);
+        
         // Check if adding this sentence would exceed target too much
         const withNextSentence = currentWords + sentenceWords;
         const overTarget = withNextSentence - slideTarget;
         const underTarget = slideTarget - currentWords;
+        
+        // If we find a transition and we're close to target, break here
+        if (hasTransition && currentWords > slideTarget * 0.7) {
+          console.log('🔄 Breaking at transition:', sentence.substring(0, 50) + '...');
+          break;
+        }
         
         // Add if it gets us closer to target
         if (Math.abs(overTarget) <= Math.abs(underTarget)) {
