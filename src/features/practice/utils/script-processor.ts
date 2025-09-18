@@ -11,6 +11,17 @@ export interface ProcessedScript {
   wordCount: number;
 }
 
+/**
+ * 🆕 SIMPLIFIED CONTENT-FOCUSED GUIDANCE INTERFACE
+ * This focuses purely on CONTENT, not delivery coaching
+ */
+export interface ContentGuide {
+  transitionFrom: string | null;  // One sentence from previous slide
+  keyMessages: string[];          // 2-3 sentences with **bold** markdown
+  keyConcepts: string[];          // Terms to emphasize  
+  transitionTo: string | null;    // One sentence to next slide
+}
+
 export interface ParsedSlideScript {
   slideNumber: number;
   script: string;
@@ -404,4 +415,193 @@ export function applyParsedScriptsToSlides(
   });
   
   return updates;
+}
+
+// ========================================
+// 🆕 SIMPLIFIED CONTENT-FOCUSED FUNCTIONS
+// ========================================
+
+/**
+ * Extract key concepts (proper nouns, numbers, technical terms) from script
+ */
+function extractKeyConcepts(script: string): string[] {
+  if (!script.trim()) return [];
+  
+  const concepts: string[] = [];
+  
+  // Extract proper nouns (capitalized words)
+  const properNouns = script.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+  concepts.push(...properNouns.slice(0, 3)); // Limit to first 3
+  
+  // Extract numbers with context
+  const numbersRegex = /\b\d+(?:[.,]\d+)*(?:\s*(?:%|percent|million|billion|thousand|dollars?|fields?|years?))?/g;
+  const numbers = script.match(numbersRegex) || [];
+  concepts.push(...numbers.slice(0, 2)); // Limit to first 2
+  
+  // Extract technical terms (words with specific importance keywords)
+  const technicalTermsRegex = /\b(?:framework|system|platform|infrastructure|capability|model|process|methodology)\b/gi;
+  const technicalTerms = script.match(technicalTermsRegex) || [];
+  concepts.push(...technicalTerms.slice(0, 2)); // Limit to first 2
+  
+  // Remove duplicates and return
+  return [...new Set(concepts)].slice(0, 5); // Max 5 concepts total
+}
+
+/**
+ * Extract the 2-3 most important sentences as key messages
+ */
+function extractKeyMessages(script: string): string[] {
+  if (!script.trim()) return [];
+  
+  const sentences = script
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 15); // Filter out very short sentences
+  
+  const keyMessages: string[] = [];
+  
+  // Priority 1: Sentences with importance keywords
+  sentences.forEach(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    const hasImportanceKeyword = IMPORTANCE_KEYWORDS.some(keyword => 
+      lowerSentence.includes(keyword)
+    );
+    
+    if (hasImportanceKeyword && keyMessages.length < 2) {
+      // Bold the key concepts in the sentence
+      let highlightedSentence = sentence;
+      const concepts = extractKeyConcepts(sentence);
+      concepts.forEach(concept => {
+        const regex = new RegExp(`\\b${concept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        highlightedSentence = highlightedSentence.replace(regex, `**$&**`);
+      });
+      keyMessages.push(highlightedSentence.charAt(0).toUpperCase() + highlightedSentence.slice(1));
+    }
+  });
+  
+  // Priority 2: First few sentences as fallback (if no importance keywords found)
+  if (keyMessages.length === 0 && sentences.length > 0) {
+    const fallbackSentences = sentences.slice(0, Math.min(2, sentences.length));
+    fallbackSentences.forEach(sentence => {
+      // Bold the key concepts
+      let highlightedSentence = sentence;
+      const concepts = extractKeyConcepts(sentence);
+      concepts.forEach(concept => {
+        const regex = new RegExp(`\\b${concept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        highlightedSentence = highlightedSentence.replace(regex, `**$&**`);
+      });
+      keyMessages.push(highlightedSentence.charAt(0).toUpperCase() + highlightedSentence.slice(1));
+    });
+  }
+  
+  // Priority 3: Add one more sentence if we only have one
+  if (keyMessages.length === 1 && sentences.length > 1) {
+    const nextSentence = sentences.find(s => 
+      !keyMessages.some(existing => existing.includes(s.substring(0, 20)))
+    );
+    if (nextSentence) {
+      let highlightedSentence = nextSentence;
+      const concepts = extractKeyConcepts(nextSentence);
+      concepts.forEach(concept => {
+        const regex = new RegExp(`\\b${concept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        highlightedSentence = highlightedSentence.replace(regex, `**$&**`);
+      });
+      keyMessages.push(highlightedSentence.charAt(0).toUpperCase() + highlightedSentence.slice(1));
+    }
+  }
+  
+  return keyMessages.slice(0, 3); // Max 3 key messages
+}
+
+/**
+ * Generate simple transition from one slide to the next
+ */
+function generateTransitionTo(currentScript: string, nextScript: string): string | null {
+  if (!currentScript.trim() || !nextScript.trim()) return null;
+  
+  // Extract first key concept from next script to create natural bridge
+  const nextConcepts = extractKeyConcepts(nextScript);
+  const nextFirstSentence = nextScript.split(/[.!?]+/)[0]?.trim();
+  
+  if (nextConcepts.length > 0) {
+    const concept = nextConcepts[0];
+    return `This leads us to examine ${concept.toLowerCase()}...`;
+  } else if (nextFirstSentence && nextFirstSentence.length > 10) {
+    // Create generic transition based on content
+    if (nextFirstSentence.toLowerCase().includes('now') || nextFirstSentence.toLowerCase().includes('next')) {
+      return 'Moving on to our next topic...';
+    } else if (nextFirstSentence.toLowerCase().includes('let')) {
+      return "Let's shift our focus...";
+    } else {
+      return 'This brings us to the next point...';
+    }
+  }
+  
+  return 'Moving forward...';
+}
+
+/**
+ * Generate simple transition from previous slide to current
+ */
+function generateTransitionFrom(previousScript: string, currentScript: string): string | null {
+  if (!previousScript.trim() || !currentScript.trim()) return null;
+  
+  // Extract key concept from previous script to create connection
+  const previousConcepts = extractKeyConcepts(previousScript);
+  const currentFirstSentence = currentScript.split(/[.!?]+/)[0]?.trim();
+  
+  if (previousConcepts.length > 0) {
+    const concept = previousConcepts[0];
+    return `Building on ${concept.toLowerCase()} we just discussed...`;
+  } else if (currentFirstSentence && currentFirstSentence.length > 10) {
+    // Create generic transition
+    if (currentFirstSentence.toLowerCase().includes('now') || currentFirstSentence.toLowerCase().includes('next')) {
+      return 'Continuing from where we left off...';
+    } else {
+      return 'Following up on that point...';
+    }
+  }
+  
+  return 'Building on what we just covered...';
+}
+
+/**
+ * 🆕 MAIN FUNCTION: Generate simplified content-focused guidance for a slide
+ * This replaces the old coaching-heavy approach with pure content focus
+ */
+export function generateContentGuide(
+  currentScript: string,
+  previousScript?: string,
+  nextScript?: string
+): ContentGuide {
+  if (!currentScript.trim()) {
+    return {
+      transitionFrom: null,
+      keyMessages: [],
+      keyConcepts: [],
+      transitionTo: null
+    };
+  }
+  
+  return {
+    transitionFrom: previousScript ? generateTransitionFrom(previousScript, currentScript) : null,
+    keyMessages: extractKeyMessages(currentScript),
+    keyConcepts: extractKeyConcepts(currentScript),
+    transitionTo: nextScript ? generateTransitionTo(currentScript, nextScript) : null
+  };
+}
+
+/**
+ * 🆕 Generate content guides for all slides in a presentation
+ */
+export function generateAllContentGuides(slides: { id: string; script: string }[]): { slideId: string; guide: ContentGuide }[] {
+  return slides.map((slide, index) => {
+    const previousScript = index > 0 ? slides[index - 1].script : undefined;
+    const nextScript = index < slides.length - 1 ? slides[index + 1].script : undefined;
+    
+    return {
+      slideId: slide.id,
+      guide: generateContentGuide(slide.script, previousScript, nextScript)
+    };
+  });
 }

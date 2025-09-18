@@ -4,7 +4,8 @@ import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
 import { ScriptUpload } from './features/script/components/ScriptUpload';
-import { PracticeView } from './features/practice/components/PracticeView';
+import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
+// import { PracticeView } from './features/practice/components/PracticeView'; // 📝 Commented out - keeping old three-pane view for reference
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
@@ -125,14 +126,11 @@ export default function App() {
               </div>
             </TabsContent>
             
-            <TabsContent value="practice">
-              <Card className="min-h-[600px] overflow-hidden">
-                <CardContent className="p-0 h-full">
-                  <PracticeView 
-                    onBackToPreparation={() => setCurrentMode('setup')}
-                  />
-                </CardContent>
-              </Card>
+            <TabsContent value="practice" className="p-0">
+              {/* 🆕 SIMPLIFIED TWO-PANE PRACTICE VIEW - Full screen layout */}
+              <SimplePracticeView 
+                onBack={() => setCurrentMode('setup')}
+              />
             </TabsContent>
           </Tabs>
         )}
