@@ -262,6 +262,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     </div>
                   </div>
                 )}
+                </div>
               </Card>
             </div>
           )}
