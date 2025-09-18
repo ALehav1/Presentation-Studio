@@ -532,10 +532,11 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             </Card>
           </div>
         )}
+
       </div>
 
-      {/* Mobile Navigation (Bottom) */}
-      <div className="lg:hidden flex items-center justify-between p-4 border-t bg-background">
+      {/* Navigation Controls */}
+      <div className="flex-shrink-0 flex items-center gap-4 p-4 border-t bg-white justify-between">
         <Button 
           variant="outline"
           onClick={previousSlide}
@@ -576,4 +577,4 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
       </div>
     </div>
   );
-}
+};

@@ -5,6 +5,7 @@ import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
 import { ScriptUpload } from './features/script/components/ScriptUpload';
 import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
+import { AIPremiumPanel } from './features/ai-premium/components/AIPremiumPanel';
 // import { PracticeView } from './features/practice/components/PracticeView'; // 📝 Commented out - keeping old three-pane view for reference
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -175,6 +176,12 @@ export default function App() {
                   />
                 </CardContent>
               </Card>
+              
+              {/* 🤖 Premium AI Enhancement Panel */}
+              <AIPremiumPanel 
+                defaultExpanded={false}
+                className="animate-in fade-in-50 slide-in-from-bottom-4 duration-300"
+              />
               
               {/* Two column layout for slides and editor */}
               <div className="grid md:grid-cols-2 gap-6">
