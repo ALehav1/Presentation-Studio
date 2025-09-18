@@ -263,10 +263,10 @@ Return ONLY the JSON, no other text.`
   }
 
   /**
-   * Robust extraction method that handles Claude's almost-valid JSON
+   * Bulletproof extraction that handles brackets inside strings: "[No content]"
    */
   private extractClaudeJSON(content: string): string[] {
-    // Find the array bounds
+    // Extract the array portion
     const start = content.indexOf('[');
     const end = content.lastIndexOf(']');
     
@@ -274,35 +274,39 @@ Return ONLY the JSON, no other text.`
       throw new Error('No array found in response');
     }
     
-    // Extract array content
     const arrayStr = content.substring(start, end + 1);
     console.log('🔍 Extracted array string:', arrayStr.substring(0, 200));
     
+    // Fix the problematic brackets in string values
+    const fixed = arrayStr
+      .replace(/"\[([^\]"]+)\]"/g, '"$1"')  // Remove [ ] inside strings
+      .replace(/\[([^"[\]]+)\]/g, '""');    // Replace unquoted placeholders with empty strings
+    
+    console.log('🔧 Fixed brackets:', fixed.substring(0, 200));
+    
     try {
-      // Try direct parse first
-      const parsed = JSON.parse(arrayStr);
-      console.log('✅ Direct JSON.parse successful!');
-      return parsed;
+      const scriptSections = JSON.parse(fixed);
+      console.log('✅ Successfully parsed', scriptSections.length, 'sections');
+      return scriptSections;
     } catch {
-      console.log('⚠️ Direct parse failed, trying regex extraction...');
+      console.log('⚠️ JSON parse failed, trying manual extraction...');
       
-      // If that fails, extract strings manually using regex
+      // Manual string extraction as fallback
       const sections: string[] = [];
-      const regex = /"([^"\\\\]*(\\\\.[^"\\\\]*)*)"/g;
+      const regex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
       let match;
       
       while ((match = regex.exec(arrayStr)) !== null) {
         sections.push(match[1]);
       }
       
-      console.log('🔧 Regex extracted', sections.length, 'sections');
+      console.log('✅ Manual extraction got', sections.length, 'sections');
       
-      // If we got some sections, use them
       if (sections.length > 0) {
         return sections;
       }
       
-      throw new Error('Could not extract valid sections');
+      throw new Error('Could not extract any sections');
     }
   }
 
