@@ -205,14 +205,17 @@ src/
 - Click "Parse & Apply Script" to intelligently distribute content across slides
 - Images automatically saved to IndexedDB for unlimited storage
 
-**🎤 Practice Mode** ✅ **Complete & Premium:**
+**🎤 Practice Mode** ✅ **Complete & Premium with Advanced Editing:**
 - **Superior Three-Section Layout**: Slide + Guide (top row, equal sizes) | Script (bottom row, full width)
 - **Perfect Visual Balance**: Slide and Presenter Guide get equal prominence and visual weight
-- **Optimal Script Reading**: Full-width script area provides comfortable reading experience
+- **Inline Script Editing**: Click-to-edit scripts with auto-save (1-second debounce)
+- **Presenter Guide Editing**: Customize transitions and key messages with form-based interface
 - **AI-Powered Guidance**: Automatic extraction of key points, transitions, and timing cues
+- **Smart Script Processing**: Enhanced parsing with slide-count awareness and intelligent distribution
+- **Manual Script Mapping**: Drag-and-drop modal for precise script-to-slide mapping
+- **Auto-Save Functionality**: Debounced saves prevent data loss during editing
 - **Professional UI**: Glass morphism cards with gradient designs and smooth animations
 - **Hide/Show Controls**: Toggle section visibility for focused practice
-- **Smart Script Processing**: Intelligent conclusion splitting when sections don't match slide count
 - **Mobile Responsive**: Beautiful layout on all devices (375px minimum)
 
 **🎙️ Delivery Phase** 📋 **Planned Next:**

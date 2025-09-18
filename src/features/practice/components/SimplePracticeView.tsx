@@ -4,7 +4,10 @@ import { generateContentGuide, ContentGuide } from '../utils/script-processor';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Maximize2, AlertCircle } from 'lucide-react';
+import { Textarea } from '../../../components/ui/textarea';
+import { Input } from '../../../components/ui/input';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Maximize2, AlertCircle, Edit2, Save } from 'lucide-react';
+import { useDebouncedCallback } from '../../../shared/hooks/useDebounce';
 
 interface SimplePracticeViewProps {
   onBack: () => void;
@@ -21,23 +24,49 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     currentSlideIndex,
     setCurrentSlide,
     nextSlide,
-    previousSlide
+    previousSlide,
+    updateSlideScript,
+    updateSlideGuide
   } = usePresentationStore();
 
   const [showScript, setShowScript] = useState(true);
   const [showGuide, setShowGuide] = useState(true);
   const [contentGuide, setContentGuide] = useState<ContentGuide | null>(null);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  
+  // Editing states
+  const [isEditingScript, setIsEditingScript] = useState(false);
+  const [isEditingGuide, setIsEditingGuide] = useState(false);
+  const [tempScript, setTempScript] = useState('');
+  const [tempGuide, setTempGuide] = useState<ContentGuide | null>(null);
 
   // Memoize slides array to prevent useEffect dependency issues
   const slides = useMemo(() => currentPresentation?.slides || [], [currentPresentation?.slides]);
   const currentSlide = slides[currentSlideIndex];
   const totalSlides = slides.length;
+  
+  // Debounced save functions
+  const saveScript = useDebouncedCallback((slideId: string, newScript: string) => {
+    updateSlideScript(slideId, newScript);
+    setIsEditingScript(false);
+  }, 1000);
+
+  const saveGuide = useDebouncedCallback((slideId: string, newGuide: ContentGuide) => {
+    updateSlideGuide(slideId, newGuide);
+    setIsEditingGuide(false);
+  }, 1000);
 
   // Generate content guide for current slide
   useEffect(() => {
     if (!currentSlide || !currentSlide.script?.trim()) {
       setContentGuide(null);
+      setIsGeneratingGuide(false);
+      return;
+    }
+
+    // Use existing guide if available, otherwise generate new one
+    if (currentSlide.guide) {
+      setContentGuide(currentSlide.guide);
       setIsGeneratingGuide(false);
       return;
     }
@@ -195,11 +224,111 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           {showGuide && (
             <div className="w-1/2 p-2 border-b">
               <Card className="h-full flex flex-col">
-                <div className="p-3 border-b bg-gray-50/50 flex-shrink-0">
+                <div className="p-3 border-b bg-gray-50/50 flex-shrink-0 flex justify-between items-center">
                   <h3 className="font-semibold text-base">Presenter Guide</h3>
+                  <Button
+                    size="sm"
+                    variant={isEditingGuide ? "default" : "ghost"}
+                    onClick={() => {
+                      if (isEditingGuide) {
+                        // Save
+                        if (tempGuide && currentSlide) {
+                          saveGuide(currentSlide.id, tempGuide);
+                        }
+                      } else {
+                        // Start editing
+                        setIsEditingGuide(true);
+                        setTempGuide(contentGuide || {
+                          transitionFrom: null,
+                          keyMessages: [],
+                          keyConcepts: [],
+                          transitionTo: null
+                        });
+                      }
+                    }}
+                  >
+                    {isEditingGuide ? (
+                      <>
+                        <Save className="w-3 h-3 mr-1" />
+                        Save
+                      </>
+                    ) : (
+                      <>
+                        <Edit2 className="w-3 h-3 mr-1" />
+                        Edit
+                      </>
+                    )}
+                  </Button>
                 </div>
                 <div className="flex-1 p-3 overflow-y-auto">                
-                {isGeneratingGuide ? (
+                {isEditingGuide && tempGuide ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">From previous:</label>
+                      <Input
+                        className="mt-1"
+                        placeholder="Connection from previous slide..."
+                        value={tempGuide.transitionFrom || ''}
+                        onChange={(e) => setTempGuide({
+                          ...tempGuide,
+                          transitionFrom: e.target.value || null
+                        })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Key messages (one per line):</label>
+                      <Textarea
+                        className="mt-1"
+                        placeholder="Enter key messages, one per line..."
+                        value={tempGuide.keyMessages?.join('\n') || ''}
+                        onChange={(e) => setTempGuide({
+                          ...tempGuide,
+                          keyMessages: e.target.value.split('\n').filter(Boolean)
+                        })}
+                        rows={4}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">To next:</label>
+                      <Input
+                        className="mt-1"
+                        placeholder="Transition to next slide..."
+                        value={tempGuide.transitionTo || ''}
+                        onChange={(e) => setTempGuide({
+                          ...tempGuide,
+                          transitionTo: e.target.value || null
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => {
+                          if (tempGuide && currentSlide) {
+                            saveGuide(currentSlide.id, tempGuide);
+                          }
+                        }}
+                      >
+                        Save Changes
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingGuide(false);
+                          setTempGuide(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : isGeneratingGuide ? (
                   <div className="flex items-center justify-center h-32">
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -274,14 +403,85 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           <div className="h-[40%] p-2">
             <Card className="h-full flex flex-col">
               <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
-                <h3 className="font-semibold text-base">Full Script</h3>
-                <Badge variant="outline" className="text-xs">
-                  {currentSlide.script ? `${currentSlide.script.split(/\s+/).length} words` : '0 words'}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-semibold text-base">Full Script</h3>
+                  <Badge variant="outline" className="text-xs">
+                    {currentSlide?.script ? `${currentSlide.script.split(/\s+/).length} words`  : '0 words'}
+                  </Badge>
+                </div>
+                <Button
+                  size="sm"
+                  variant={isEditingScript ? "default" : "ghost"}
+                  onClick={() => {
+                    if (isEditingScript) {
+                      // Save
+                      if (currentSlide) {
+                        updateSlideScript(currentSlide.id, tempScript);
+                        setIsEditingScript(false);
+                      }
+                    } else {
+                      // Start editing
+                      setIsEditingScript(true);
+                      setTempScript(currentSlide?.script || '');
+                    }
+                  }}
+                >
+                  {isEditingScript ? (
+                    <>
+                      <Save className="w-3 h-3 mr-1" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="w-3 h-3 mr-1" />
+                      Edit
+                    </>
+                  )}
+                </Button>
               </div>
               
               <div className="flex-1 p-3 overflow-y-auto">
-                {currentSlide.script ? (
+                {isEditingScript ? (
+                  <div className="h-full flex flex-col">
+                    <Textarea
+                      value={tempScript}
+                      onChange={(e) => {
+                        setTempScript(e.target.value);
+                        // Auto-save after 1 second of no typing
+                        if (currentSlide) {
+                          saveScript(currentSlide.id, e.target.value);
+                        }
+                      }}
+                      className="flex-1 font-mono text-sm resize-none"
+                      placeholder="Enter your script for this slide..."
+                    />
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => {
+                          if (currentSlide) {
+                            updateSlideScript(currentSlide.id, tempScript);
+                            setIsEditingScript(false);
+                          }
+                        }}
+                      >
+                        Save Script
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingScript(false);
+                          setTempScript('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : currentSlide?.script ? (
                   <div className="prose prose-sm max-w-none">
                     <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
                       {currentSlide.script}
@@ -292,6 +492,17 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     <div className="text-center">
                       <AlertCircle className="w-6 h-6 text-gray-400 mx-auto mb-2" />
                       <p className="text-muted-foreground">No script available for this slide</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => {
+                          setIsEditingScript(true);
+                          setTempScript('');
+                        }}
+                      >
+                        Add Script
+                      </Button>
                     </div>
                   </div>
                 )}

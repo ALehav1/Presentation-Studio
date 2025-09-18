@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { parseFullScript, applyParsedScriptsToSlides } from '../../features/practice/utils/script-processor';
+import { parseFullScript, applyParsedScriptsToSlides, ContentGuide } from '../../features/practice/utils/script-processor';
 import { saveSlideImage, loadPresentationImages, deletePresentationImages } from '../../services/imageStorage';
 
 interface Slide {
@@ -9,6 +9,7 @@ interface Slide {
   script: string;
   notes: string;
   keyPoints: string[];
+  guide?: ContentGuide;
 }
 
 interface PresentationState {
@@ -32,6 +33,8 @@ interface PresentationState {
   // Actions
   createPresentation: (title: string, slideImages: string[]) => Promise<void>;
   updateSlideScript: (slideId: string, script: string) => void;
+  updateSlideGuide: (slideId: string, guide: ContentGuide) => void;
+  updateSlideNotes: (slideId: string, notes: string) => void;
   parseAndApplyBulkScript: (fullScript: string) => void;
   setCurrentSlide: (index: number) => void;
   nextSlide: () => void;
@@ -99,6 +102,44 @@ export const usePresentationStore = create<PresentationState>()(
         
         const updatedSlides = currentPresentation.slides.map(slide =>
           slide.id === slideId ? { ...slide, script } : slide
+        );
+        
+        set({
+          currentPresentation: {
+            ...currentPresentation,
+            slides: updatedSlides,
+            updatedAt: new Date()
+          }
+        });
+      },
+      
+      // Update presenter guide for a specific slide
+      updateSlideGuide: (slideId, guide) => {
+        const { currentPresentation } = get();
+        if (!currentPresentation) return;
+        
+        const updatedSlides = currentPresentation.slides.map(slide =>
+          slide.id === slideId ? { ...slide, guide } : slide
+        );
+        
+        set({
+          currentPresentation: {
+            ...currentPresentation,
+            slides: updatedSlides,
+            updatedAt: new Date()
+          }
+        });
+        
+        console.log('💾 Saved guide for slide', slideId);
+      },
+
+      // Update notes for a specific slide
+      updateSlideNotes: (slideId, notes) => {
+        const { currentPresentation } = get();
+        if (!currentPresentation) return;
+        
+        const updatedSlides = currentPresentation.slides.map(slide =>
+          slide.id === slideId ? { ...slide, notes } : slide
         );
         
         set({

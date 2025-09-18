@@ -206,220 +206,144 @@ export function estimateSpeakingTime(wordCount: number): string {
 }
 
 /**
- * Parse a full script into slide sections
- * Supports multiple formats:
- * - "Slide X" markers 
- * - "---" dividers
- * - Paragraph-based splitting (fallback)
+ * Parse a full script into slide sections with enhanced intelligence
+ * Supports multiple formats and slide-count awareness
  */
 export function parseFullScript(fullScript: string, maxSlides?: number): ParsedSlideScript[] {
   if (!fullScript.trim()) return [];
   
-  console.log('🔍 PARSING SCRIPT:', { 
-    length: fullScript.length, 
-    maxSlides,
-    preview: fullScript.substring(0, 200)
-  });
+  console.log('🎯 Smart parsing for', maxSlides, 'slides');
   
-  // Add debug check for expected slides
-  if (maxSlides) {
-    console.log(`📊 Expected slides: ${maxSlides}`);
-  }
-  
-  const result: ParsedSlideScript[] = [];
   let sections: string[] = [];
   
-  // Method 1: Split by "Slide X" markers (case insensitive)
+  // Strategy 1: Explicit "Slide N" markers
   const slideMarkerRegex = /slide\s+\d+/gi;
   const slideMarkers = [...fullScript.matchAll(slideMarkerRegex)];
   
   if (slideMarkers.length > 0) {
-    console.log('📍 Found slide markers:', slideMarkers.length, slideMarkers);
-    
-    // Split the script by slide markers
+    console.log('✅ Using Slide N markers');
     const splitByMarkers = fullScript.split(slideMarkerRegex);
-    console.log('📍 Split parts:', splitByMarkers);
-    
-    // Extract sections (skip the first part if it's empty/before first slide marker)
     for (let i = 1; i < splitByMarkers.length; i++) {
       const content = splitByMarkers[i].trim();
-      if (content) {
-        sections.push(content);
-      }
-    }
-    
-    console.log('📍 Extracted sections:', sections);
-  }
-  
-  // Method 1b: Try splitting by section headers (for scripts without "Slide X" format)
-  if (sections.length === 0) {
-    const sectionHeaders = [
-      'Opening', 'Documentation Foundation', 'Capability Stack', 
-      'Activation Layer', 'FIRST Framework', 'Close'
-    ];
-    
-    console.log('🔍 Checking for section headers in script...');
-    console.log('📄 Script preview (first 500 chars):', fullScript.substring(0, 500));
-    
-    // Debug: Check each header individually
-    const foundHeaders: string[] = [];
-    sectionHeaders.forEach(header => {
-      const found = fullScript.toLowerCase().includes(header.toLowerCase());
-      console.log(`🔍 Header "${header}": ${found ? '✅ FOUND' : '❌ NOT FOUND'}`);
-      if (found) foundHeaders.push(header);
-    });
-    
-    if (foundHeaders.length > 0) {
-      console.log('📍 Found section headers:', foundHeaders);
-      
-      // Find all header positions
-      const headerPositions: Array<{header: string, index: number}> = [];
-      foundHeaders.forEach(header => {
-        const index = fullScript.toLowerCase().indexOf(header.toLowerCase());
-        if (index > -1) {
-          headerPositions.push({header, index});
-          console.log(`📍 "${header}" found at position ${index}`);
-        }
-      });
-      
-      // Sort by position in text
-      headerPositions.sort((a, b) => a.index - b.index);
-      console.log('📍 Sorted header positions:', headerPositions);
-      
-      // Extract sections between headers
-      for (let i = 0; i < headerPositions.length; i++) {
-        const start = headerPositions[i].index;
-        const end = headerPositions[i + 1]?.index || fullScript.length;
-        const section = fullScript.substring(start, end).trim();
-        
-        console.log(`📝 Extracting section "${headerPositions[i].header}":`, {
-          start, end, length: section.length, preview: section.substring(0, 100)
-        });
-        
-        if (section && section.length > 10) {
-          sections.push(section);
-        }
-      }
-      
-      console.log('📍 Topic-based sections created:', sections.length);
-    } else {
-      console.log('❌ No section headers found - will try other methods or create single section');
+      if (content) sections.push(content);
     }
   }
   
-  // Method 2: Split by "---" dividers if no slide markers found
-  if (sections.length === 0) {
+  // Strategy 2: Section headers
+  else if (detectSectionHeaders(fullScript)) {
+    console.log('✅ Using section headers');
+    sections = extractBySectionHeaders(fullScript);
+  }
+  
+  // Strategy 3: Smart paragraph grouping
+  else if (maxSlides) {
+    console.log('✅ Using intelligent paragraph grouping');
+    sections = intelligentParagraphSplit(fullScript, maxSlides);
+  }
+  
+  // Strategy 4: Fallback to existing logic
+  else {
     const dividerSections = fullScript.split(/^---+$/gm).map(s => s.trim()).filter(s => s);
-    
     if (dividerSections.length > 1) {
-      console.log('📍 Found divider sections:', dividerSections.length);
       sections = dividerSections;
+    } else {
+      const paragraphs = fullScript.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 20);
+      sections = paragraphs;
     }
   }
   
-  // Method 3: Fallback to paragraph splitting
-  if (sections.length === 0) {
-    const paragraphs = fullScript
-      .split(/\n\s*\n/)  // Split on double line breaks
-      .map(p => p.trim())
-      .filter(p => p.length > 20); // Ignore very short paragraphs
-    
-    console.log('📍 Fallback to paragraphs:', paragraphs.length);
-    sections = paragraphs;
+  // Handle section/slide count mismatch
+  if (maxSlides && sections.length !== maxSlides) {
+    sections = rebalanceSections(sections, maxSlides);
   }
-  
-  // Note: We handle section-to-slide mismatch at the end of this function
   
   // Process each section
-  sections.forEach((section, index) => {
-    const slideNumber = index + 1;
-    
-    // Clean up section content
-    const cleanSection = section
-      .replace(/^Slide\s+\d+\s*/i, '') // Remove "Slide X" markers
-      .replace(/^---+\s*/, '') // Remove divider lines
-      .replace(/^(Opening|Documentation Foundation|Capability Stack|Activation Layer|FIRST Framework|Close)\s*/i, '') // Remove topic headers
-      .trim();
-    
-    const processed = processScript(cleanSection);
-    
-    console.log(`📝 Processing section ${slideNumber}:`, {
-      originalLength: section.length,
-      cleanedLength: cleanSection.length,
-      content: cleanSection.substring(0, 100) + '...',
-      wordCount: processed.wordCount,
-      keyPoints: processed.keyPoints.length
-    });
-    
-    result.push({
-      slideNumber,
-      script: cleanSection,
-      processed
-    });
+  return sections.map((section, index) => ({
+    slideNumber: index + 1,
+    script: section.trim(),
+    processed: processScript(section)
+  }));
+}
+
+// ADD these helper functions AFTER parseFullScript:
+
+function detectSectionHeaders(text: string): boolean {
+  const headers = ['Opening', 'Documentation', 'Capability', 'Activation', 'Framework', 'Close'];
+  return headers.some(h => text.toLowerCase().includes(h.toLowerCase()));
+}
+
+function extractBySectionHeaders(text: string): string[] {
+  const headers = ['Opening', 'Documentation Foundation', 'Capability Stack', 
+                   'Activation Layer', 'FIRST Framework', 'Close'];
+  const sections: string[] = [];
+  const headerPositions: Array<{header: string, index: number}> = [];
+  
+  headers.forEach(header => {
+    const index = text.toLowerCase().indexOf(header.toLowerCase());
+    if (index > -1) headerPositions.push({header, index});
   });
   
-  console.log('✅ Script parsing complete:', {
-    totalSections: result.length,
-    wordCounts: result.map(r => r.processed.wordCount),
-    sections: result.map(r => r.script.substring(0, 50) + '...')
-  });
-
-  // SMART FIX: Handle mismatch between script sections and slides
-  if (maxSlides && result.length < maxSlides) {
-    console.log(`⚠️ Script sections (${result.length}) < Slides (${maxSlides})`);
-    
-    // Check if the last section might be a long conclusion that should be split
-    if (result.length > 0) {
-      const lastSection = result[result.length - 1];
-      const lastWordCount = lastSection.processed.wordCount;
-      
-      // If last section is unusually long (>150 words), split it
-      if (lastWordCount > 150 && result.length === maxSlides - 1) {
-        console.log('📄 Splitting long conclusion across two slides');
-        
-        // Split the last section roughly in half
-        const sentences = lastSection.script.split(/[.!?]+/).filter(s => s.trim());
-        const midpoint = Math.floor(sentences.length / 2);
-        
-        const firstHalf = sentences.slice(0, midpoint).join('. ').trim() + '.';
-        const secondHalf = sentences.slice(midpoint).join('. ').trim() + '.';
-        
-        // Update the last section with first half
-        result[result.length - 1] = {
-          slideNumber: result.length,
-          script: firstHalf,
-          processed: processScript(firstHalf)
-        };
-        
-        // Add new section with second half
-        result.push({
-          slideNumber: result.length + 1,
-          script: secondHalf,
-          processed: processScript(secondHalf)
-        });
-        
-        console.log('✅ Split conclusion into two slides');
-      } else {
-        // Otherwise, pad with empty sections
-        while (result.length < maxSlides) {
-          console.log(`📝 Adding empty section for slide ${result.length + 1}`);
-          result.push({
-            slideNumber: result.length + 1,
-            script: '',
-            processed: processScript('')
-          });
-        }
-      }
-    }
-  }
-
-  // Also handle case where we have MORE sections than slides
-  if (maxSlides && result.length > maxSlides) {
-    console.log(`⚠️ Truncating ${result.length} sections to ${maxSlides} slides`);
-    return result.slice(0, maxSlides);
+  headerPositions.sort((a, b) => a.index - b.index);
+  
+  for (let i = 0; i < headerPositions.length; i++) {
+    const start = headerPositions[i].index;
+    const end = headerPositions[i + 1]?.index || text.length;
+    const section = text.substring(start, end).trim();
+    if (section.length > 10) sections.push(section);
   }
   
-  return result;
+  return sections;
+}
+
+function intelligentParagraphSplit(text: string, targetSlides: number): string[] {
+  const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 20);
+  
+  if (paragraphs.length === targetSlides) return paragraphs;
+  
+  const sections: string[] = [];
+  const parasPerSlide = Math.ceil(paragraphs.length / targetSlides);
+  
+  for (let i = 0; i < targetSlides; i++) {
+    const start = i * parasPerSlide;
+    const end = Math.min(start + parasPerSlide, paragraphs.length);
+    const section = paragraphs.slice(start, end).join('\n\n');
+    sections.push(section || '');
+  }
+  
+  return sections;
+}
+
+function rebalanceSections(sections: string[], targetSlides: number): string[] {
+  if (sections.length === targetSlides) return sections;
+  
+  if (sections.length < targetSlides) {
+    // Find longest section and split it
+    const longest = sections.reduce((max, s, i) => 
+      s.length > sections[max].length ? i : max, 0);
+    
+    const toSplit = sections[longest];
+    const midpoint = Math.floor(toSplit.length / 2);
+    const splitPoint = toSplit.indexOf('.', midpoint) + 1 || midpoint;
+    
+    sections[longest] = toSplit.substring(0, splitPoint).trim();
+    sections.splice(longest + 1, 0, toSplit.substring(splitPoint).trim());
+    
+    return sections.length < targetSlides 
+      ? rebalanceSections(sections, targetSlides) 
+      : sections;
+  }
+  
+  // Too many sections - merge shortest adjacent pairs
+  const shortest = sections.reduce((min, s, i) => 
+    i > 0 && (s.length + sections[i-1].length) < 
+    (sections[min].length + sections[min-1]?.length || Infinity) ? i : min, 1);
+  
+  sections[shortest - 1] += '\n\n' + sections[shortest];
+  sections.splice(shortest, 1);
+  
+  return sections.length > targetSlides 
+    ? rebalanceSections(sections, targetSlides) 
+    : sections;
 }
 
 /**
