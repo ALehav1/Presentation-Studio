@@ -158,8 +158,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
 
       {/* Main Content - Two Pane Layout */}
       <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Left Pane: Slide Image (Desktop: 40% width) */}
-        <div className="lg:w-2/5 lg:h-full h-[40vh] bg-gray-50 flex items-center justify-center relative border-r">
+        {/* Left Pane: Slide Image (Desktop: 50% width to match each right section) */}
+        <div className="lg:w-1/2 lg:h-full h-[40vh] bg-gray-50 flex items-center justify-center relative border-r">
           {currentSlide.imageUrl ? (
             <img
               src={currentSlide.imageUrl}
@@ -187,14 +187,16 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           </Button>
         </div>
 
-        {/* Right Pane: Guide + Script (Desktop: 60% width) */}
-        <div className="lg:w-3/5 flex-1 flex flex-col">
-          {/* Presenter Guide Section (Top 40% on desktop) */}
+        {/* Right Pane: Guide + Script (Desktop: 50% width, split evenly) */}
+        <div className="lg:w-1/2 flex-1 flex flex-col">
+          {/* Presenter Guide Section (50% of right pane height) */}
           {showGuide && (
-            <div className="lg:h-2/5 p-6 border-b overflow-y-auto">
-              <Card className="h-full p-6">
-                <h3 className="font-semibold mb-4 text-lg">Presenter Guide</h3>
-                
+            <div className="flex-1 lg:h-1/2 p-4 border-b">
+              <Card className="h-full flex flex-col">
+                <div className="p-4 border-b bg-gray-50/50">
+                  <h3 className="font-semibold text-lg">Presenter Guide</h3>
+                </div>
+                <div className="flex-1 p-4 overflow-y-auto">                
                 {isGeneratingGuide ? (
                   <div className="flex items-center justify-center h-32">
                     <div className="flex items-center gap-2">
@@ -206,15 +208,15 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                   <div className="space-y-4 text-sm leading-relaxed">
                     {/* Transition From Previous */}
                     {contentGuide.transitionFrom && (
-                      <div className="p-3 rounded-md bg-gray-50 border-l-2 border-gray-300">
-                        <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">From previous:</p>
+                      <div className="p-3 mb-4 rounded-md bg-gray-50 border-l-2 border-gray-300">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">From previous:</p>
                         <p className="text-gray-600 italic">{contentGuide.transitionFrom}</p>
                       </div>
                     )}
                     
                     {/* Key Messages */}
                     {contentGuide.keyMessages.length > 0 && (
-                      <div>
+                      <div className="mb-4">
                         <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">Key messages:</p>
                         <div className="space-y-3">
                           {contentGuide.keyMessages.map((message, index) => (
@@ -234,8 +236,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                     
                     {/* Transition To Next */}
                     {contentGuide.transitionTo && (
-                      <div className="p-3 rounded-md bg-blue-50 border-l-2 border-blue-300">
-                        <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">To next:</p>
+                      <div className="p-3 mb-2 rounded-md bg-blue-50 border-l-2 border-blue-300">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">To next:</p>
                         <p className="text-blue-600 italic">{contentGuide.transitionTo}</p>
                       </div>
                     )}
@@ -264,27 +266,30 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             </div>
           )}
 
-          {/* Script Section (Bottom 60% on desktop, remaining space) */}
+          {/* Script Section (50% of right pane height) */}
           {showScript && (
-            <div className="flex-1 p-6">
-              <Card className="h-full p-6">
-                <div className="flex items-center justify-between mb-4">
+            <div className="flex-1 lg:h-1/2 p-4">
+              <Card className="h-full flex flex-col">
+                <div className="p-4 border-b bg-gray-50/50 flex items-center justify-between">
                   <h3 className="font-semibold text-lg">Full Script</h3>
                   <Badge variant="outline">
                     {currentSlide.script ? `${currentSlide.script.split(/\s+/).length} words` : '0 words'}
                   </Badge>
                 </div>
                 
-                <div className="h-full overflow-y-auto">
+                <div className="flex-1 p-4 overflow-y-auto">
                   {currentSlide.script ? (
                     <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap leading-relaxed text-base">
+                      <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
                         {currentSlide.script}
                       </p>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-32">
-                      <p className="text-muted-foreground">No script available for this slide</p>
+                      <div className="text-center">
+                        <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-muted-foreground">No script available for this slide</p>
+                      </div>
                     </div>
                   )}
                 </div>
