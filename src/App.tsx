@@ -5,26 +5,37 @@ import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
 import { ScriptUpload } from './features/script/components/ScriptUpload';
 import { PracticeView } from './features/practice/components/PracticeView';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { Badge } from './components/ui/badge';
+import { Button } from './components/ui/button';
 
 export default function App() {
   const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex } = usePresentationStore();
-  const [currentMode, setCurrentMode] = useState<'preparation' | 'practice'>('preparation');
+  const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-800">
-            PresentationStudio
-          </h1>
-          {currentPresentation && (
-            <button
-              onClick={clearPresentation}
-              className="px-4 py-2 text-gray-600 hover:text-red-600 transition-colors"
-            >
-              New Presentation
-            </button>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      {/* Modern glass morphism header */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/70 border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                PresentationStudio
+              </h1>
+              {currentPresentation && (
+                <Badge variant="secondary">
+                  {currentPresentation.slides.length} slides
+                </Badge>
+              )}
+            </div>
+            {currentPresentation && (
+              <Button variant="ghost" onClick={clearPresentation}>
+                New Presentation
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -32,102 +43,90 @@ export default function App() {
         {!currentPresentation ? (
           <EnhancedWelcome 
             onScriptProvided={(script) => {
-              // For future implementation: handle script-first workflow
-              console.log('Script provided:', script.substring(0, 50) + '...');
+              // Store script globally for Setup mode access
+              (window as any).uploadedScript = script;
+              console.log('Script provided and stored globally:', script.substring(0, 50) + '...');
             }}
           />
         ) : (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <Tabs value={currentMode} onValueChange={(value) => setCurrentMode(value as 'setup' | 'practice')} className="w-full">
+            {/* Beautiful tab navigation */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-semibold text-gray-800">
                   {currentPresentation.title}
                 </h2>
                 <p className="text-gray-600">
-                  {currentPresentation.slides.length} slides • 
-                  Created {new Date(currentPresentation.createdAt).toLocaleDateString()} •
-                  <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                    currentMode === 'practice' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {currentMode === 'practice' ? 'Practice Mode' : 'Preparation Mode'}
-                  </span>
+                  Created {new Date(currentPresentation.createdAt).toLocaleDateString()}
                 </p>
               </div>
               
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentMode('preparation')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentMode === 'preparation'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  📁 Setup
-                </button>
-                <button
-                  onClick={() => setCurrentMode('practice')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentMode === 'practice'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  🎤 Practice
-                </button>
-              </div>
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="setup" className="data-[state=active]:bg-white">
+                  <span className="mr-2">📁</span> Setup
+                </TabsTrigger>
+                <TabsTrigger value="practice" className="data-[state=active]:bg-white">
+                  <span className="mr-2">🎤</span> Practice
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            {/* Main Content - Switch between modes */}
-            {currentMode === 'preparation' ? (
-              <div className="space-y-8">
-                {/* Script Upload Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">
-                    Upload Full Script
-                  </h3>
+            {/* Tab content with modern cards */}
+            <TabsContent value="setup" className="space-y-6">
+              {/* Script Upload Card */}
+              <Card className="card-hover">
+                <CardHeader>
+                  <CardTitle>Upload Script</CardTitle>
+                  <CardDescription>
+                    Add your presentation script for all {currentPresentation.slides.length} slides
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <ScriptUpload 
                     onScriptUploaded={() => console.log('Script uploaded and parsed!')}
                   />
-                </div>
-
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Slide Viewer */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-800">
-                      Slide Viewer
-                    </h3>
+                </CardContent>
+              </Card>
+              
+              {/* Two column layout for slides and editor */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle>Slides</CardTitle>
+                    <CardDescription>Navigate through your presentation</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <SlideViewer />
-                  </div>
-
-                  {/* Script Editor */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-800">
-                      Individual Slide Script
-                    </h3>
-                    <div className="bg-white rounded-lg border p-6">
-                      {currentPresentation && (
-                        <ScriptEditor
-                          slideId={currentPresentation.slides[currentSlideIndex]?.id}
-                          initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="card-hover">
+                  <CardHeader>
+                    <CardTitle>Slide Script</CardTitle>
+                    <CardDescription>Edit the script for the current slide</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {currentPresentation && (
+                      <ScriptEditor
+                        slideId={currentPresentation.slides[currentSlideIndex]?.id}
+                        initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            ) : (
-              /* Practice Mode - Three-pane view */
-              <div className="h-[calc(100vh-200px)]">
-                <PracticeView 
-                  onBackToPreparation={() => setCurrentMode('preparation')}
-                />
-              </div>
-            )}
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="practice">
+              <Card className="min-h-[600px] overflow-hidden">
+                <CardContent className="p-0 h-full">
+                  <PracticeView 
+                    onBackToPreparation={() => setCurrentMode('setup')}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         )}
       </main>
 

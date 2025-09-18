@@ -202,7 +202,7 @@ export const usePresentationStore = create<PresentationState>()(
           ...state.currentPresentation,
           slides: state.currentPresentation.slides.map(slide => ({
             ...slide,
-            imageUrl: '' // Clear ONLY for persistence, not in memory
+            imageUrl: slide.imageUrl // Keep the actual URL for persistence
           }))
         } : null,
         currentSlideIndex: state.currentSlideIndex
