@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { generateContentGuide, ContentGuide } from '../utils/script-processor';
 import { Card } from '../../../components/ui/card';

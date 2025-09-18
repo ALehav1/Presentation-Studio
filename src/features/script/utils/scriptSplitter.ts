@@ -188,7 +188,7 @@ export class ScriptSplitter {
   /**
    * Distribute sections to slides
    */
-  private static distributeSections(sections: string[], slideCount: number): string[] {
+  static distributeSections(sections: string[], slideCount: number): string[] {
     const result = Array(slideCount).fill('');
     
     if (sections.length === slideCount) {
@@ -218,7 +218,7 @@ export class ScriptSplitter {
   /**
    * Redistribute sections evenly while preserving semantic meaning
    */
-  private static redistributeSectionsEvenly(sections: string[], slideCount: number): string[] {
+  static redistributeSectionsEvenly(sections: string[], slideCount: number): string[] {
     // If we have the right number of sections, use them as-is
     if (sections.length === slideCount) {
       return sections;
@@ -288,7 +288,7 @@ export class ScriptSplitter {
   private static intelligentAllocation(
     sentences: string[], 
     slideCount: number, 
-    targetWords: number
+    _targetWords: number // Prefix with underscore to indicate intentionally unused
   ): string[] {
     const result: string[] = [];
     let sentenceIndex = 0;

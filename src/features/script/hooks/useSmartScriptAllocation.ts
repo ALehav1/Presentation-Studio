@@ -60,7 +60,7 @@ export const useSmartScriptAllocation = (
       
       // Get indices of slides that need reallocation
       const slidesToReallocate = updated
-        .map((s, i) => i)
+        .map((_, i) => i)
         .filter(i => !updated[i].isManuallyEdited);
       
       if (slidesToReallocate.length > 0 && remainingScript) {
@@ -104,7 +104,7 @@ export const useSmartScriptAllocation = (
       remainingScript = remainingScript.replace(/\n{3,}/g, '\n\n').trim();
       
       const slidesToReallocate = updated
-        .map((s, i) => i)
+        .map((_, i) => i)
         .filter(i => !updated[i].isManuallyEdited);
       
       if (slidesToReallocate.length > 0) {

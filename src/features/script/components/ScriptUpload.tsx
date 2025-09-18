@@ -18,7 +18,7 @@ interface ScriptUploadProps {
  * Enhanced script upload component with automatic parsing and alignment
  * Provides streamlined UX with immediate visual feedback
  */
-const VALID_EXTENSIONS = ['.txt', '.pdf'];
+// const VALID_EXTENSIONS = ['.txt', '.pdf']; // Currently unused
 
 export function ScriptUpload({ onScriptUploaded, onNavigateToPractice }: ScriptUploadProps) {
   const { currentPresentation, parseAndApplyBulkScript, updateSlideGuide } = usePresentationStore();
