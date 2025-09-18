@@ -206,16 +206,29 @@ Focus on TOPIC ALIGNMENT, not word count.`
       const content = data.content[0]?.text;
       
       try {
-        // Extract JSON array from response and clean it
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('No JSON array found in response');
+        // Extract JSON array from response (Claude adds commentary)
+        let jsonStr = '';
         
-        // Remove JavaScript-style comments that Claude adds
-        const cleanJsonStr = jsonMatch[0]
-          .replace(/\/\/[^\n\r]*/g, '') // Remove // comments
-          .replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
+        // Find the start of the JSON array
+        const startIndex = content.indexOf('[');
+        if (startIndex === -1) throw new Error('No JSON array found in response');
         
-        const matchedSections = JSON.parse(cleanJsonStr);
+        // Find the matching closing bracket by counting brackets
+        let bracketCount = 0;
+        let endIndex = startIndex;
+        
+        for (let i = startIndex; i < content.length; i++) {
+          if (content[i] === '[') bracketCount++;
+          if (content[i] === ']') bracketCount--;
+          if (bracketCount === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+        
+        jsonStr = content.substring(startIndex, endIndex + 1);
+        
+        const matchedSections = JSON.parse(jsonStr);
         
         if (!Array.isArray(matchedSections)) {
           throw new Error('Response is not an array');
