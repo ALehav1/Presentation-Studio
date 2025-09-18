@@ -44,10 +44,10 @@ export class ClaudeAIService {
     try {
       console.log(`🔍 Claude analyzing slide ${slideNumber}...`);
       
-      // Convert data URL to base64
-      const base64Image = imageDataUrl.split(',')[1];
-      if (!base64Image) {
-        return { success: false, error: 'Invalid image format' };
+      // Convert and compress image to prevent timeouts
+      const compressedImage = await this.compressImageForClaude(imageDataUrl);
+      if (!compressedImage) {
+        return { success: false, error: 'Image compression failed' };
       }
       
       const response = await fetch(this.apiRoute, {
@@ -67,7 +67,7 @@ export class ClaudeAIService {
                 source: {
                   type: 'base64',
                   media_type: 'image/png',
-                  data: base64Image
+                  data: compressedImage
                 }
               },
               {
@@ -396,15 +396,6 @@ Be specific and reference the actual slide content. Focus on techniques that top
   }
 
   /**
-   * Update API key
-   */
-  setApiKey(key: string): void {
-    this.apiKey = key;
-    localStorage.setItem('anthropic_api_key', key);
-    console.log('🔑 Claude API key updated');
-  }
-
-  /**
    * Check if API key is available
    */
   hasApiKey(): boolean {
@@ -420,6 +411,56 @@ Be specific and reference the actual slide content. Focus on techniques that top
       description: 'Superior vision and reasoning capabilities',
       costPer1k: 0.003 // $3 per million tokens
     };
+  }
+
+  /**
+   * Compress image to prevent Edge Function timeouts
+   * Reduces image size from ~500KB to ~50KB
+   */
+  private async compressImageForClaude(dataUrl: string): Promise<string | null> {
+    try {
+      // Extract base64 data
+      const base64Data = dataUrl.split(',')[1];
+      if (!base64Data) return null;
+
+      // Create image element for compression
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+
+          // Compress to max 800x600 while maintaining aspect ratio
+          const maxWidth = 800;
+          const maxHeight = 600;
+          let { width, height } = img;
+
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw compressed image
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed base64 (quality 0.7 = ~70% compression)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          const compressedBase64 = compressedDataUrl.split(',')[1];
+          
+          console.log(`📉 Image compressed: ${Math.round(base64Data.length / 1024)}KB → ${Math.round(compressedBase64.length / 1024)}KB`);
+          resolve(compressedBase64);
+        };
+        img.src = dataUrl;
+      });
+    } catch (error) {
+      console.error('❌ Image compression failed:', error);
+      return null;
+    }
   }
 }
 
