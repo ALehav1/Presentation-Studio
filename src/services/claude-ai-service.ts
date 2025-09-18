@@ -1,5 +1,5 @@
 // src/services/claude-ai-service.ts
-import { ClaudeJSONParser, buildStrictJSONPrompt } from './claude-json-parser';
+import { buildStrictJSONPrompt } from './claude-json-parser';
 // Using Claude Sonnet 3.5 - Superior vision and reasoning for presentation analysis
 
 /**
@@ -213,104 +213,38 @@ Return ONLY the JSON, no other text.`
       console.log('🔍 First 200 chars of response:', content.substring(0, 200));
       console.log('🔍 Last 100 chars of response:', content.substring(content.length - 100));
       
-      // DETAILED DIAGNOSTIC EXTRACTION
-      let scriptSections: string[] = [];
-      
-      const firstBracket = content.indexOf('[');
-      const lastBracket = content.lastIndexOf(']');
-      
-      console.log('📍 Bracket positions:', { first: firstBracket, last: lastBracket });
-      console.log('🔍 Content between brackets exists:', firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket);
-      
-      if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-        const jsonString = content.substring(firstBracket, lastBracket + 1);
-        console.log('🔍 Extracted JSON length:', jsonString.length);
-        console.log('🔍 Extracted JSON preview (first 200):', jsonString.substring(0, 200));
-        console.log('🔍 Extracted JSON preview (last 100):', jsonString.substring(jsonString.length - 100));
+      // USE ROBUST CLAUDE JSON EXTRACTION
+      try {
+        const scriptSections = this.extractClaudeJSON(content);
+        console.log('✅ Successfully extracted', scriptSections.length, 'sections');
         
-        console.log('🔧 Attempting JSON.parse...');
-        try {
-          const parsed = JSON.parse(jsonString);
-          console.log('✅ JSON.parse successful!');
-          console.log('📊 Parsed type:', typeof parsed);
-          console.log('📊 Is array:', Array.isArray(parsed));
-          
-          if (Array.isArray(parsed)) {
-            scriptSections = parsed;
-            console.log('✅ Successfully extracted', scriptSections.length, 'sections');
-            console.log('📝 First section preview:', scriptSections[0]?.substring(0, 100) + '...');
-            console.log('📝 Section lengths:', scriptSections.map((s, i) => `${i+1}: ${s.length} chars`));
-          } else {
-            console.error('❌ Parsed result is not an array:', parsed);
-          }
-        } catch (parseError) {
-          console.error('❌ JSON.parse failed:', parseError.message);
-          console.error('❌ Parse error details:', parseError);
-          console.log('🔍 Problematic JSON string:', jsonString);
+        // Adjust count if needed
+        let finalSections = scriptSections;
+        if (scriptSections.length !== slideAnalyses.length) {
+          console.log(`⚙️ Adjusting from ${scriptSections.length} to ${slideAnalyses.length} sections`);
+          finalSections = this.adjustSectionCount(scriptSections, slideAnalyses.length);
         }
-      } else {
-        console.error('❌ Invalid bracket positions - cannot extract JSON');
-        console.log('🔍 Searching for partial patterns...');
-        if (content.includes('[') && content.includes(']')) {
-          console.log('✓ Contains brackets but positions are invalid');
-        } else {
-          console.log('❌ No brackets found in content at all');
-        }
-      }
-      
-      // If we have no sections at this point, fall back
-      if (scriptSections.length === 0) {
-        console.log('📊 No sections extracted, falling back to semantic splitter');
-        const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
+        
+        console.log(`🎉 Successfully matched ${finalSections.length} script sections to slides`);
         
         return {
           success: true,
-          matches: fallbackSections.map((section: string, i: number) => ({
+          matches: finalSections.map((section: string, i: number) => ({
             slideNumber: i + 1,
             scriptSection: section,
-            confidence: 60,
-            reasoning: 'Fallback: semantic splitting',
+            confidence: 90,
+            reasoning: 'AI content matching with robust extraction',
             keyAlignment: []
           }))
         };
+        
+      } catch (extractError) {
+        console.error('❌ Claude JSON extraction failed:', extractError instanceof Error ? extractError.message : 'Unknown error');
+        console.log('📊 Raw response preview:', content.substring(0, 500));
       }
-      
-      // Validate the sections
-      const validation = ClaudeJSONParser.validateExtractedSections(
-        scriptSections,
-        slideAnalyses.length
-      );
-      
-      console.log('📋 Validation result:', validation);
-      
-      let finalSections = scriptSections;
-      
-      if (!validation.valid && scriptSections.length > 0) {
-        console.log('⚙️ Adjusting section count from', scriptSections.length, 'to', slideAnalyses.length);
-        finalSections = this.adjustSectionCount(scriptSections, slideAnalyses.length);
-      }
-
-      console.log(`✅ Successfully matched ${finalSections.length} script sections to slides`);
-      
-      // Convert to the expected format
-      const matches = finalSections.map((section: string, i: number) => ({
-        slideNumber: i + 1,
-        scriptSection: section,
-        confidence: validation.valid ? 95 : 85,
-        reasoning: validation.valid ? 
-          'AI content matching with high confidence' : 
-          'AI content matching with count adjustment',
-        keyAlignment: []  // Simplified for diagnostic
-      }));
-      
-      return {
-        success: true,
-        matches: matches
-      };
 
     } catch (error) {
-      console.error('❌ Outer catch - Script matching failed:', error.message);
-      console.error('📊 Full error:', error);
+      console.error('❌ Script matching failed:', error instanceof Error ? error.message : 'Unknown error');
       
       // Ultimate fallback
       const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
@@ -325,6 +259,50 @@ Return ONLY the JSON, no other text.`
           keyAlignment: []
         }))
       };
+    }
+  }
+
+  /**
+   * Robust extraction method that handles Claude's almost-valid JSON
+   */
+  private extractClaudeJSON(content: string): string[] {
+    // Find the array bounds
+    const start = content.indexOf('[');
+    const end = content.lastIndexOf(']');
+    
+    if (start === -1 || end === -1) {
+      throw new Error('No array found in response');
+    }
+    
+    // Extract array content
+    const arrayStr = content.substring(start, end + 1);
+    console.log('🔍 Extracted array string:', arrayStr.substring(0, 200));
+    
+    try {
+      // Try direct parse first
+      const parsed = JSON.parse(arrayStr);
+      console.log('✅ Direct JSON.parse successful!');
+      return parsed;
+    } catch {
+      console.log('⚠️ Direct parse failed, trying regex extraction...');
+      
+      // If that fails, extract strings manually using regex
+      const sections: string[] = [];
+      const regex = /"([^"\\\\]*(\\\\.[^"\\\\]*)*)"/g;
+      let match;
+      
+      while ((match = regex.exec(arrayStr)) !== null) {
+        sections.push(match[1]);
+      }
+      
+      console.log('🔧 Regex extracted', sections.length, 'sections');
+      
+      // If we got some sections, use them
+      if (sections.length > 0) {
+        return sections;
+      }
+      
+      throw new Error('Could not extract valid sections');
     }
   }
 
