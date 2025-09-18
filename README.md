@@ -491,9 +491,33 @@ Next, we'll examine the implementation details.
 - Real-time context-aware guidance
 - **THE COMPREHENSIVE DIFFERENCE**: Professional-grade script allocation + seamless Setup/Practice sync + mobile-first design = Production-ready presentation workflow that works flawlessly across all devices!
 
-## 🎉 **LATEST UPDATE - COMPREHENSIVE SCRIPT & MOBILE BREAKTHROUGH!**
+## 🎉 **LATEST UPDATE - CRITICAL FIXES & SEMANTIC ALLOCATION BREAKTHROUGH!**
 
 ### ✅ **Just Implemented (January 2025):**
+
+#### 🐛 **CRITICAL BUG FIXED - Infinite Loop Resolved:**
+- **Root Cause Identified**: useEffect dependency on Zustand store function causing endless re-renders
+- **Fixed in App.tsx**: Changed dependency from `loadImagesFromIndexedDB` function to `currentPresentation?.id`
+- **Impact**: App now starts normally without console spam or browser freezing
+- **Technical**: Added ESLint disable comment with clear intent for dependency optimization
+- **Status**: ✅ Committed (c48cc01) - App fully functional again
+
+#### 🧠 **SEMANTIC SCRIPT ALLOCATION SYSTEM - MAJOR ENHANCEMENT:**
+- **Multi-Pattern Detection**: Recognizes "Moving on", "Next", "Finally", "Let's look at", numbered sections
+- **Natural Break Recognition**: Paragraph boundaries, markdown headers, structural markers
+- **Intelligent Distribution**: Perfect match → Split sections → Combine sections based on content
+- **Transition-Aware Splitting**: Prevents mid-thought breaks by detecting transition phrases
+- **Enhanced Debugging**: Comprehensive console logs with allocation analysis and word counts
+- **Fallback Strategy**: Sentence-based allocation when no clear semantic sections detected
+
+#### 🎯 **Script Allocation Results:**
+```
+Old System: "Good morning everyone. Welcome to our presentation on data systems. Moving on to the first major..."
+New System: "Good morning everyone. Welcome to our presentation on data systems." | "Moving on to the first major topic..."
+```
+- **Better Flow**: Scripts break at logical transition points, not arbitrary word counts
+- **Complete Thoughts**: Each slide contains semantically complete content
+- **Debug Visibility**: Console shows section detection and distribution decisions
 
 **🧠 **Dynamic Programming Script Allocation** - PRODUCTION READY!**
 - **🚀 **Revolutionary Algorithm**: Complete rewrite using dynamic programming with sentence boundary detection
