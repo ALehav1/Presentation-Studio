@@ -9,7 +9,7 @@
 export class ClaudeAIService {
   private apiKey: string = '';
   private model: string = 'claude-3-5-sonnet-20241022';
-  private baseUrl: string = 'https://cors-anywhere.herokuapp.com/https://api.anthropic.com/v1/messages'; // Latest Sonnet with excellent vision capabilities
+  private apiRoute: string = '/api/claude'; // Our Vercel Edge Function - PROPER SOLUTION!
   
   constructor() {
     this.apiKey = localStorage.getItem('anthropic_api_key') || '';
@@ -50,14 +50,13 @@ export class ClaudeAIService {
         return { success: false, error: 'Invalid image format' };
       }
       
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(this.apiRoute, {
         method: 'POST',
         headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          apiKey: this.apiKey,
           model: this.model,
           max_tokens: 1200,
           messages: [{
@@ -166,14 +165,13 @@ Return ONLY the JSON, no other text.`
     try {
       console.log('🎯 Claude matching script to slides intelligently...');
       
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(this.apiRoute, {
         method: 'POST',
         headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          apiKey: this.apiKey,
           model: this.model,
           max_tokens: 4000,
           messages: [{
@@ -285,14 +283,13 @@ IMPORTANT: Each scriptSection must be complete sentences. Look for natural break
     try {
       console.log(`🎤 Claude generating expert coaching for slide ${slideNumber}...`);
       
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(this.apiRoute, {
         method: 'POST',
         headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          apiKey: this.apiKey,
           model: this.model,
           max_tokens: 2000,
           messages: [{
@@ -366,7 +363,7 @@ Be specific and reference the actual slide content. Focus on techniques that top
   }
 
   /**
-   * Test API connection with Claude
+   * Test API connection with Claude via our Vercel Edge Function
    */
   async testConnection(): Promise<{connected: boolean; message: string; model?: string}> {
     if (!this.apiKey) {
@@ -374,16 +371,15 @@ Be specific and reference the actual slide content. Focus on techniques that top
     }
 
     try {
-      console.log('🔗 Testing Claude connection...');
+      console.log('🔗 Testing Claude connection via Edge Function...');
       
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(this.apiRoute, {
         method: 'POST',
         headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          apiKey: this.apiKey,
           model: this.model,
           max_tokens: 20,
           messages: [{
@@ -396,7 +392,7 @@ Be specific and reference the actual slide content. Focus on techniques that top
       if (response.ok) {
         const data = await response.json();
         const reply = data.content[0]?.text || '';
-        console.log('✅ Claude connection successful');
+        console.log('✅ Claude connection successful via Edge Function');
         
         return { 
           connected: true, 
