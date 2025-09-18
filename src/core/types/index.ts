@@ -22,7 +22,7 @@ export interface Slide {
 export interface Session {
   id: string;
   presentationId: string;
-  mode: 'practice' | 'delivery';
+  mode: "practice" | "delivery";
   startedAt: Date;
   endedAt?: Date;
   recordingUrl?: string;
