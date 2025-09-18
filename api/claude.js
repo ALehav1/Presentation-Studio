@@ -13,7 +13,7 @@ export default async function handler(request) {
 
   try {
     const body = await request.json();
-    const { messages, apiKey, model = 'claude-3-5-sonnet-20241022', max_tokens = 1024 } = body;
+    const { messages, apiKey, model = 'claude-3-5-sonnet-20241022', max_tokens = 1024, tools } = body;
 
     // Validate required fields
     if (!messages || !apiKey) {
@@ -39,7 +39,8 @@ export default async function handler(request) {
         body: JSON.stringify({
           model,
           max_tokens,
-          messages
+          messages,
+          ...(tools && { tools })
         })
       });
 

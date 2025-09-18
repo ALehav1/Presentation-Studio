@@ -174,22 +174,38 @@ Return ONLY the JSON, no other text.`
           apiKey: this.apiKey,
           model: this.model,
           max_tokens: 4000,
+          tools: [{
+            name: "provide_script_sections",
+            description: "Provides script sections matched to slides",
+            input_schema: {
+              type: "object",
+              properties: {
+                script_sections: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: `Array of ${slideAnalyses.length} script portions, one for each slide`
+                }
+              },
+              required: ["script_sections"]
+            }
+          }],
           messages: [{
             role: 'user',
-            content: `You are an expert presentation coach. Match script content to slide topics.
+            content: `You are an expert presentation coach. Match script content to slide content based on topic alignment.
 
-SLIDES (${slideAnalyses.length} total):
-${slideAnalyses.map((analysis, i) => `${i + 1}. ${analysis.mainTopic}`).join('\n')}
+SLIDE CONTENTS:
+${slideAnalyses.map((analysis, i) => `
+Slide ${i + 1}: ${analysis.mainTopic}
+Text on slide: ${analysis.allText}
+Key topics: ${analysis.keyPoints.join(', ')}
+`).join('\n')}
 
-SCRIPT (${Math.round(fullScript.length / 4)} tokens):
-${fullScript.substring(0, 2000)}${fullScript.length > 2000 ? '...[truncated]' : ''}
+FULL SPEAKER SCRIPT:
+${fullScript}
 
-Match script sections to slide topics.
+TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics. Each script portion should contain the parts that best match what's shown on that slide.
 
-CRITICAL: Return ONLY a JSON array with ${slideAnalyses.length} script portions. No explanations, no commentary, just the raw JSON:
-["script for slide 1", "script for slide 2", ...]
-
-Focus on TOPIC ALIGNMENT, not word count.`
+Use the provide_script_sections tool to return the matched script portions.`
           }]
         })
       });
@@ -203,46 +219,36 @@ Focus on TOPIC ALIGNMENT, not word count.`
       }
 
       const data = await response.json();
-      const content = data.content[0]?.text;
       
       try {
-        // Simple approach: Find the JSON array using line-based extraction
-        const lines = content.split('\n');
-        let jsonLines = [];
-        let inArray = false;
+        // Look for tool use in the response
+        let scriptSections = null;
         
-        for (const line of lines) {
-          if (line.trim().startsWith('[')) {
-            inArray = true;
-            jsonLines.push(line);
-          } else if (inArray && line.trim().endsWith(']')) {
-            jsonLines.push(line);
-            break;
-          } else if (inArray) {
-            jsonLines.push(line);
+        if (data.content) {
+          for (const content of data.content) {
+            if (content.type === 'tool_use' && content.name === 'provide_script_sections') {
+              scriptSections = content.input?.script_sections;
+              break;
+            }
           }
         }
         
-        if (jsonLines.length === 0) {
-          throw new Error('No JSON array found in response');
+        if (!scriptSections || !Array.isArray(scriptSections)) {
+          throw new Error('No script sections found in tool response');
         }
         
-        const jsonStr = jsonLines.join('\n');
-        
-        const matchedSections = JSON.parse(jsonStr);
-        
-        if (!Array.isArray(matchedSections)) {
-          throw new Error('Response is not an array');
+        if (scriptSections.length !== slideAnalyses.length) {
+          throw new Error(`Expected ${slideAnalyses.length} sections, got ${scriptSections.length}`);
         }
         
-        console.log('✅ Claude matched script to slides:', matchedSections.length, 'sections');
+        console.log('✅ Claude matched script to slides using tools:', scriptSections.length, 'sections');
         
         const result = {
-          matches: matchedSections.map((section: string, i: number) => ({
+          matches: scriptSections.map((section: string, i: number) => ({
             slideNumber: i + 1,
             scriptSection: section,
-            confidence: 90,
-            reasoning: 'AI content matching',
+            confidence: 95,
+            reasoning: 'AI tool-based content matching',
             keyAlignment: []
           }))
         };
@@ -252,7 +258,7 @@ Focus on TOPIC ALIGNMENT, not word count.`
           matches: result.matches
         };
       } catch (parseError) {
-        console.error('❌ Failed to parse matching response:', content);
+        console.error('❌ Failed to parse matching response:', data);
         return {
           success: false,
           error: 'Invalid matching response format'
