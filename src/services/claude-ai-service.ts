@@ -184,7 +184,9 @@ ${slideAnalyses.map((analysis, i) => `${i + 1}. ${analysis.mainTopic}`).join('\n
 SCRIPT (${Math.round(fullScript.length / 4)} tokens):
 ${fullScript.substring(0, 2000)}${fullScript.length > 2000 ? '...[truncated]' : ''}
 
-Match script sections to slide topics. Return JSON array with ${slideAnalyses.length} script portions:
+Match script sections to slide topics.
+
+CRITICAL: Return ONLY a JSON array with ${slideAnalyses.length} script portions. No explanations, no commentary, just the raw JSON:
 ["script for slide 1", "script for slide 2", ...]
 
 Focus on TOPIC ALIGNMENT, not word count.`
