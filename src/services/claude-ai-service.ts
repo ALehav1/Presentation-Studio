@@ -176,20 +176,24 @@ Return ONLY the JSON, no other text.`
           max_tokens: 4000,
           messages: [{
             role: 'user',
-            content: `You are an expert presentation coach. Match script content to slide topics.
+            content: `You are an expert presentation coach. Match script content to slide content based on topic alignment.
 
-SLIDES (${slideAnalyses.length} total):
-${slideAnalyses.map((analysis, i) => `${i + 1}. ${analysis.mainTopic}`).join('\n')}
+SLIDE CONTENTS:
+${slideAnalyses.map((analysis, i) => `
+Slide ${i + 1}: ${analysis.mainTopic}
+Text on slide: ${analysis.allText}
+Key topics: ${analysis.keyPoints.join(', ')}
+`).join('\n')}
 
-SCRIPT (${Math.round(fullScript.length / 4)} tokens):
-${fullScript.substring(0, 2000)}${fullScript.length > 2000 ? '...[truncated]' : ''}
+FULL SPEAKER SCRIPT:
+${fullScript}
 
-Match script sections to slide topics.
+TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics. Each script portion should contain the parts that best match what's shown on that slide.
 
 CRITICAL: Return ONLY a JSON array with ${slideAnalyses.length} script portions. No explanations, no commentary, just the raw JSON:
-["script for slide 1", "script for slide 2", ...]
+["script portion for slide 1", "script portion for slide 2", ...]
 
-Focus on TOPIC ALIGNMENT, not word count.`
+Match by CONTENT and TOPICS, not just word count.`
           }]
         })
       });
