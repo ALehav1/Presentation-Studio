@@ -10,10 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
+import { Check, AlertCircle } from 'lucide-react';
+import { Toaster } from './components/ui/toast';
 
 export default function App() {
   const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
+  const [setupComplete, setSetupComplete] = useState(false);
   
   // Load images from IndexedDB when app starts with a persisted presentation
   useEffect(() => {
@@ -22,6 +25,15 @@ export default function App() {
       loadImagesFromIndexedDB();
     }
   }, [currentPresentation, loadImagesFromIndexedDB]);
+  
+  // Check if setup is complete
+  useEffect(() => {
+    if (currentPresentation) {
+      const hasScripts = currentPresentation.slides.some(s => s.script?.trim());
+      const hasGuides = currentPresentation.slides.some(s => s.guide);
+      setSetupComplete(hasScripts && hasGuides);
+    }
+  }, [currentPresentation]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
@@ -71,17 +83,76 @@ export default function App() {
               </div>
               
               <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="setup" className="data-[state=active]:bg-white">
+                <TabsTrigger value="setup" className="data-[state=active]:bg-white relative">
                   <span className="mr-2">📁</span> Setup
+                  {!setupComplete && currentPresentation && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                  )}
                 </TabsTrigger>
-                <TabsTrigger value="practice" className="data-[state=active]:bg-white">
+                <TabsTrigger 
+                  value="practice" 
+                  className="data-[state=active]:bg-white relative"
+                  disabled={!setupComplete}
+                >
                   <span className="mr-2">🎤</span> Practice
+                  {setupComplete && (
+                    <Check className="w-3 h-3 ml-1 text-green-600" />
+                  )}
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* Tab content with modern cards */}
             <TabsContent value="setup" className="space-y-6">
+              {/* Setup Progress Card */}
+              <Card className={setupComplete ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/50"}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      {setupComplete ? (
+                        <>
+                          <Check className="w-5 h-5 text-green-600" />
+                          Setup Complete
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-5 h-5 text-orange-600" />
+                          Setup In Progress
+                        </>
+                      )}
+                    </span>
+                    {setupComplete && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => setCurrentMode('practice')}
+                        className="bg-green-600 hover:bg-green-700 min-h-[44px] px-4"
+                      >
+                        Ready for Practice →
+                      </Button>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        {currentPresentation?.slides.some(s => s.script?.trim()) ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
+                        )}
+                        <span className="text-sm">Scripts Added</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {currentPresentation?.slides.some(s => s.guide) ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
+                        )}
+                        <span className="text-sm">Guides Generated</span>
+                      </div>
+                    </div>
+                  </CardDescription>
+                </CardHeader>
+              </Card>
               {/* Script Upload Card */}
               <Card className="card-hover">
                 <CardHeader>
@@ -92,7 +163,14 @@ export default function App() {
                 </CardHeader>
                 <CardContent>
                   <ScriptUpload 
-                    onScriptUploaded={() => console.log('Script uploaded and parsed!')}
+                    onScriptUploaded={() => {
+                      console.log('Script uploaded and parsed!');
+                      // Force re-check of setup status
+                      setSetupComplete(true);
+                    }}
+                    onNavigateToPractice={() => {
+                      setCurrentMode('practice');
+                    }}
                   />
                 </CardContent>
               </Card>
@@ -147,6 +225,9 @@ export default function App() {
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }

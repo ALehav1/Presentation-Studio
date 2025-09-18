@@ -31,12 +31,11 @@ export function PracticeView({ onBackToPreparation }: PracticeViewProps) {
   const currentSlide = currentPresentation?.slides[currentSlideIndex];
   const totalSlides = currentPresentation?.slides.length || 0;
   
-  // DEBUG: Log the data flow issue
-  console.log('🐛 PRACTICE MODE DEBUG:', {
+  // DEBUG: Log the script allocation
+  console.log('📝 SCRIPT ALLOCATION DEBUG:', {
     presentationExists: !!currentPresentation,
     slideCount: totalSlides,
     currentIndex: currentSlideIndex,
-    currentSlideExists: !!currentSlide,
     currentSlideId: currentSlide?.id,
     currentSlideScript: currentSlide?.script,
     currentSlideScriptLength: currentSlide?.script?.length || 0

@@ -42,12 +42,23 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
 
   // Memoize slides array to prevent useEffect dependency issues
   const slides = useMemo(() => currentPresentation?.slides || [], [currentPresentation?.slides]);
-  const currentSlide = slides[currentSlideIndex];
-  const totalSlides = slides.length;
+  const currentSlide = currentPresentation?.slides[currentSlideIndex];
+  const totalSlides = currentPresentation?.slides.length || 0;
+  
+  // DEBUG: Track script changes in practice mode
+  useEffect(() => {
+    console.log('🎤 PRACTICE MODE DEBUG:', {
+      slideIndex: currentSlideIndex,
+      slideId: currentSlide?.id,
+      hasScript: !!currentSlide?.script,
+      scriptLength: currentSlide?.script?.length || 0,
+      scriptPreview: currentSlide?.script?.substring(0, 100) || 'NO SCRIPT'
+    });
+  }, [currentSlideIndex, currentSlide?.script]);
   
   // Debounced save functions
   const saveScript = useDebouncedCallback((slideId: string, newScript: string) => {
-    updateSlideScript(slideId, newScript);
+    updateSlideScript(slideId, newScript, 'practice');
     setIsEditingScript(false);
   }, 1000);
 
@@ -129,12 +140,15 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      {/* Header with navigation - Fixed height */}
-      <div className="flex-shrink-0 flex items-center justify-between p-3 border-b bg-background">
+    <div className="flex flex-col h-screen lg:h-screen bg-background" style={{ height: '100dvh' }}>
+      {/* Header with navigation and controls */}
+      <div className="flex-shrink-0 border-b bg-background">
+        <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack}>
-            ← Back to Setup
+          <Button variant="ghost" size="sm" onClick={onBack} className="min-h-[44px]">
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Back to Setup</span>
+            <span className="sm:hidden">Back</span>
           </Button>
           <h1 className="text-lg font-semibold">Practice Mode</h1>
         </div>
@@ -146,11 +160,12 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             size="sm"
             onClick={previousSlide}
             disabled={currentSlideIndex === 0}
+            className="min-w-[48px] min-h-[48px] p-3"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </Button>
           
-          <Badge variant="secondary">
+          <Badge variant="secondary" className="px-3 py-1 text-sm">
             Slide {currentSlideIndex + 1} of {totalSlides}
           </Badge>
           
@@ -159,28 +174,33 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             size="sm"
             onClick={nextSlide}
             disabled={currentSlideIndex === totalSlides - 1}
+            className="min-w-[48px] min-h-[48px] p-3"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
 
-        {/* View Controls */}
+        {/* View Controls - Mobile Friendly */}
         <div className="flex items-center gap-2">
           <Button
             variant={showGuide ? "default" : "outline"}
             size="sm"
             onClick={() => setShowGuide(!showGuide)}
+            className="min-h-[44px] px-3 text-xs md:text-sm"
           >
-            {showGuide ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            Guide
+            {showGuide ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
+            <span className="hidden sm:inline">Guide</span>
+            <span className="sm:hidden">📋</span>
           </Button>
           <Button
             variant={showScript ? "default" : "outline"}
             size="sm"
             onClick={() => setShowScript(!showScript)}
+            className="min-h-[44px] px-3 text-xs md:text-sm"
           >
-            {showScript ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            Script
+            {showScript ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
+            <span className="hidden sm:inline">Script</span>
+            <span className="sm:hidden">📝</span>
           </Button>
         </div>
       </div>
@@ -398,13 +418,13 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           )}
         </div>
 
-        {/* Bottom Row: Full Script (100% width, 40% of screen height) */}
+        {/* Bottom Row: Slide Script (100% width, 40% of screen height) */}
         {showScript && (
           <div className="h-[40%] p-2">
             <Card className="h-full flex flex-col">
               <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-base">Full Script</h3>
+                  <h3 className="font-semibold text-base">Slide {currentSlideIndex + 1} Script</h3>
                   <Badge variant="outline" className="text-xs">
                     {currentSlide?.script ? `${currentSlide.script.split(/\s+/).length} words`  : '0 words'}
                   </Badge>
@@ -452,7 +472,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                           saveScript(currentSlide.id, e.target.value);
                         }
                       }}
-                      className="flex-1 font-mono text-sm resize-none"
+                      className="flex-1 text-base md:text-sm font-mono resize-none min-h-[200px] p-4"
+                      style={{ fontSize: '16px' }}
                       placeholder="Enter your script for this slide..."
                     />
                     <div className="flex gap-2 mt-3">
@@ -462,7 +483,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                         className="flex-1"
                         onClick={() => {
                           if (currentSlide) {
-                            updateSlideScript(currentSlide.id, tempScript);
+                            updateSlideScript(currentSlide.id, tempScript, 'practice');
                             setIsEditingScript(false);
                           }
                         }}
@@ -483,7 +504,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                   </div>
                 ) : currentSlide?.script ? (
                   <div className="prose prose-sm max-w-none">
-                    <p className="whitespace-pre-wrap leading-relaxed text-base text-gray-800">
+                    <p className="whitespace-pre-wrap leading-relaxed text-lg md:text-base text-gray-800 p-4 md:p-0">
                       {currentSlide.script}
                     </p>
                   </div>
@@ -518,22 +539,26 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           variant="outline"
           onClick={previousSlide}
           disabled={currentSlideIndex === 0}
+          className="min-h-[48px] px-4 flex-1 max-w-[120px]"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Previous
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          <span className="hidden sm:inline">Previous</span>
+          <span className="sm:hidden">Prev</span>
         </Button>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 px-4">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => handleSlideSelect(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
+              className={`min-w-[24px] min-h-[24px] w-6 h-6 rounded-full transition-colors flex items-center justify-center text-xs ${
                 index === currentSlideIndex 
-                  ? 'bg-blue-500' 
-                  : 'bg-gray-300 hover:bg-gray-400'
+                  ? 'bg-blue-500 text-white font-semibold' 
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
               }`}
-            />
+            >
+              {index + 1}
+            </button>
           ))}
         </div>
         
@@ -541,9 +566,11 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           variant="outline"
           onClick={nextSlide}
           disabled={currentSlideIndex === totalSlides - 1}
+          className="min-h-[48px] px-4 flex-1 max-w-[120px]"
         >
-          Next
-          <ChevronRight className="w-4 h-4 ml-1" />
+          <span className="hidden sm:inline">Next</span>
+          <span className="sm:hidden">Next</span>
+          <ChevronRight className="w-5 h-5 ml-1" />
         </Button>
       </div>
     </div>

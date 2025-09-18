@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { parseFullScript, applyParsedScriptsToSlides, ContentGuide } from '../../features/practice/utils/script-processor';
+import { ContentGuide } from '../../features/practice/utils/script-processor';
+import { ScriptSplitter } from '../../features/script/utils/scriptSplitter';
 import { saveSlideImage, loadPresentationImages, deletePresentationImages } from '../../services/imageStorage';
 
 interface Slide {
@@ -18,6 +19,7 @@ interface PresentationState {
     id: string;
     title: string;
     slides: Slide[];
+    fullScript?: string;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -30,9 +32,12 @@ interface PresentationState {
   // Navigation state
   currentSlideIndex: number;
   
+  // Sync tracking
+  lastEditLocation: 'setup' | 'practice' | null;
+  
   // Actions
   createPresentation: (title: string, slideImages: string[]) => Promise<void>;
-  updateSlideScript: (slideId: string, script: string) => void;
+  updateSlideScript: (slideId: string, script: string, source?: 'setup' | 'practice') => void;
   updateSlideGuide: (slideId: string, guide: ContentGuide) => void;
   updateSlideNotes: (slideId: string, notes: string) => void;
   parseAndApplyBulkScript: (fullScript: string) => void;
@@ -55,6 +60,7 @@ export const usePresentationStore = create<PresentationState>()(
       uploadProgress: 0,
       uploadError: null,
       currentSlideIndex: 0,
+      lastEditLocation: null,
       
       // Create new presentation from uploaded PDF
       createPresentation: async (title, slideImages) => {
@@ -95,8 +101,8 @@ export const usePresentationStore = create<PresentationState>()(
         });
       },
       
-      // Update script for a specific slide
-      updateSlideScript: (slideId, script) => {
+      // Update script for a specific slide with bidirectional sync tracking
+      updateSlideScript: (slideId, script, source = 'setup') => {
         const { currentPresentation } = get();
         if (!currentPresentation) return;
         
@@ -109,8 +115,11 @@ export const usePresentationStore = create<PresentationState>()(
             ...currentPresentation,
             slides: updatedSlides,
             updatedAt: new Date()
-          }
+          },
+          lastEditLocation: source
         });
+        
+        console.log(`📝 Script updated from ${source} for slide ${slideId}`);
       },
       
       // Update presenter guide for a specific slide
@@ -159,63 +168,30 @@ export const usePresentationStore = create<PresentationState>()(
           return;
         }
         
-        console.log('🔄 Bulk script parsing started:', {
-          slideCount: currentPresentation.slides.length,
-          scriptLength: fullScript.length,
-          scriptPreview: fullScript.substring(0, 200)
-        });
+        console.log('📝 Splitting script across', currentPresentation.slides.length, 'slides');
         
-        // Parse the full script into slide sections
-        const parsedScripts = parseFullScript(fullScript, currentPresentation.slides.length);
+        // Use ScriptSplitter to evenly distribute the script
+        const splitScripts = ScriptSplitter.splitScriptEvenly(
+          fullScript, 
+          currentPresentation.slides.length
+        );
         
-        if (parsedScripts.length === 0) {
-          console.log('❌ No parsed scripts returned from parseFullScript');
-          return;
-        }
-        
-        // Apply parsed scripts to slides
-        const scriptUpdates = applyParsedScriptsToSlides(parsedScripts, currentPresentation.slides);
-        
-        if (scriptUpdates.length === 0) {
-          console.log('❌ No script updates generated from applyParsedScriptsToSlides');
-          return;
-        }
-        
-        // Update slides with new scripts
-        const updatedSlides = currentPresentation.slides.map(slide => {
-          const update = scriptUpdates.find(u => u.slideId === slide.id);
-          if (update) {
-            console.log(`📝 Updating slide ${slide.id} with script:`, {
-              oldScriptLength: slide.script?.length || 0,
-              newScriptLength: update.script.length
-            });
-            return { ...slide, script: update.script };
-          }
-          return slide;
-        });
-        
-        console.log('💾 Saving updated presentation:', {
-          slideCount: updatedSlides.length,
-          slidesWithScripts: updatedSlides.filter(s => s.script && s.script.trim()).length
-        });
+        // Update each slide with its allocated portion
+        const updatedSlides = currentPresentation.slides.map((slide, index) => ({
+          ...slide,
+          script: splitScripts[index] || ''
+        }));
         
         set({
           currentPresentation: {
             ...currentPresentation,
             slides: updatedSlides,
+            fullScript, // Keep the original for reallocation
             updatedAt: new Date()
           }
         });
         
-        // Final verification
-        const finalState = get();
-        console.log('✅ Final state verification:', {
-          totalSlides: finalState.currentPresentation?.slides.length || 0,
-          slidesWithScripts: finalState.currentPresentation?.slides.filter(s => s.script && s.script.trim()).length || 0,
-          slideScriptLengths: finalState.currentPresentation?.slides.map(s => s.script?.length || 0) || []
-        });
-        
-        console.log('✅ Bulk script parsing complete - updated', scriptUpdates.length, 'slides');
+        console.log('✅ Script split complete:', splitScripts.map(s => s.split(' ').length + ' words'));
       },
       
       // Navigation actions

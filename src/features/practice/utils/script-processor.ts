@@ -347,6 +347,26 @@ function rebalanceSections(sections: string[], targetSlides: number): string[] {
 }
 
 /**
+ * Generate content guides for all slides at once
+ * Used for bulk processing after script upload
+ */
+export function generateAllContentGuides(
+  slides: { id: string; script: string }[]
+): { slideId: string; guide: ContentGuide }[] {
+  return slides.map((slide, index) => {
+    const previousScript = index > 0 ? slides[index - 1]?.script : undefined;
+    const nextScript = index < slides.length - 1 ? slides[index + 1]?.script : undefined;
+    
+    const guide = generateContentGuide(slide.script, previousScript, nextScript);
+    
+    return {
+      slideId: slide.id,
+      guide
+    };
+  });
+}
+
+/**
  * Apply parsed scripts to presentation slides
  * This function maps parsed script sections to existing slides
  */
@@ -570,17 +590,3 @@ export function generateContentGuide(
   };
 }
 
-/**
- * 🆕 Generate content guides for all slides in a presentation
- */
-export function generateAllContentGuides(slides: { id: string; script: string }[]): { slideId: string; guide: ContentGuide }[] {
-  return slides.map((slide, index) => {
-    const previousScript = index > 0 ? slides[index - 1].script : undefined;
-    const nextScript = index < slides.length - 1 ? slides[index + 1].script : undefined;
-    
-    return {
-      slideId: slide.id,
-      guide: generateContentGuide(slide.script, previousScript, nextScript)
-    };
-  });
-}
