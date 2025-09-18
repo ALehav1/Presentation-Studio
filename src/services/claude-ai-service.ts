@@ -176,24 +176,20 @@ Return ONLY the JSON, no other text.`
           max_tokens: 4000,
           messages: [{
             role: 'user',
-            content: `You are an expert presentation coach. Match script content to slide content based on topic alignment.
+            content: `You are an expert presentation coach. Match script content to slide topics.
 
-SLIDE CONTENTS:
-${slideAnalyses.map((analysis, i) => `
-Slide ${i + 1}: ${analysis.mainTopic}
-Text on slide: ${analysis.allText}
-Key topics: ${analysis.keyPoints.join(', ')}
-`).join('\n')}
+SLIDES (${slideAnalyses.length} total):
+${slideAnalyses.map((analysis, i) => `${i + 1}. ${analysis.mainTopic}`).join('\n')}
 
-FULL SPEAKER SCRIPT:
-${fullScript}
+SCRIPT (${Math.round(fullScript.length / 4)} tokens):
+${fullScript.substring(0, 2000)}${fullScript.length > 2000 ? '...[truncated]' : ''}
 
-TASK: Split the script into ${slideAnalyses.length} portions that align with each slide's content and topics. Each script portion should contain the parts that best match what's shown on that slide.
+Match script sections to slide topics.
 
 CRITICAL: Return ONLY a JSON array with ${slideAnalyses.length} script portions. No explanations, no commentary, just the raw JSON:
-["script portion for slide 1", "script portion for slide 2", ...]
+["script for slide 1", "script for slide 2", ...]
 
-Match by CONTENT and TOPICS, not just word count.`
+Focus on TOPIC ALIGNMENT, not word count.`
           }]
         })
       });
@@ -210,8 +206,27 @@ Match by CONTENT and TOPICS, not just word count.`
       const content = data.content[0]?.text;
       
       try {
-        const result = JSON.parse(content);
-        console.log('✅ Claude matched script to slides:', result.matches.length, 'matches');
+        // Extract JSON array from response (Claude might add commentary)
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+        
+        const matchedSections = JSON.parse(jsonStr);
+        
+        if (!Array.isArray(matchedSections)) {
+          throw new Error('Response is not an array');
+        }
+        
+        console.log('✅ Claude matched script to slides:', matchedSections.length, 'sections');
+        
+        const result = {
+          matches: matchedSections.map((section: string, i: number) => ({
+            slideNumber: i + 1,
+            scriptSection: section,
+            confidence: 90,
+            reasoning: 'AI content matching',
+            keyAlignment: []
+          }))
+        };
         
         return {
           success: true,
