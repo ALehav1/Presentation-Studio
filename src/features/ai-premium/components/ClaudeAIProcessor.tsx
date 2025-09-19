@@ -257,7 +257,7 @@ export const ClaudeAIProcessor = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-              🤖 Claude Sonnet 3.5 - Premium AI Processing
+              🤖 OpenAI GPT-5 - Premium AI Processing
             </h2>
             <p className="text-sm text-gray-600">
               Transform your presentation with world-class AI intelligence
@@ -305,13 +305,15 @@ export const ClaudeAIProcessor = () => {
       {/* API Key Setup */}
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-2">
             <Key className="inline h-4 w-4 mr-1" />
-            Anthropic API Key
+            OpenAI API Key
           </label>
           <div className="flex gap-2">
             <Input
+              id="api-key"
               type="password"
+{{ ... }}
               placeholder="sk-ant-api03-..."
               value={apiKey}
               onChange={(e) => {
