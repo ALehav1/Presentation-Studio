@@ -1,9 +1,9 @@
 // src/features/ai-premium/components/ClaudeAIProcessor.tsx
-// Premium AI processor using Claude Sonnet 3.5 for complete presentation intelligence
+// REDIRECTED TO OPENAI - This file now loads OpenAI instead of Claude
 
 import { useState, useRef } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
-import { claudeAI } from '../../../services/claude-ai-service';
+import { OpenAIService } from '../../../services/openai-service';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -256,11 +256,11 @@ export const ClaudeAIProcessor = () => {
             <Brain className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-              🤖 Claude Sonnet 3.5 - Premium AI Processing
+            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+              🤖 OpenAI GPT-5 - Premium AI Processing
             </h2>
             <p className="text-sm text-gray-600">
-              Transform your presentation with world-class AI intelligence
+              Transform your presentation with GPT-5 Vision intelligence
             </p>
           </div>
         </div>
@@ -364,13 +364,12 @@ export const ClaudeAIProcessor = () => {
               console.anthropic.com
             </a>
           </p>
-        </div>
 
         {/* Cost Estimate */}
         <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-4 w-4 text-green-600" />
-            <span className="font-semibold text-green-800">Estimated Cost</span>
+            <Key className="h-4 w-4" />
+            <label htmlFor="api-key" className="text-sm font-medium text-gray-700">OpenAI API Key</label>
           </div>
           <div className="text-sm text-green-700 space-y-1">
             <p><strong>This presentation:</strong> ~${estimateCost().toFixed(2)} USD</p>
