@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Brain, Key, AlertCircle, CheckCircle } from 'lucide-react';
+import { Brain, Key, CheckCircle } from 'lucide-react';
 
 export const SimpleOpenAIProcessor = () => {
   const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
@@ -36,7 +36,7 @@ export const SimpleOpenAIProcessor = () => {
         setConnectionStatus('failed');
         alert('❌ OpenAI connection failed. Check your API key.');
       }
-    } catch (error) {
+    } catch {
       setConnectionStatus('failed');
       alert('❌ Connection error. Check your internet connection.');
     }

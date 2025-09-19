@@ -384,7 +384,7 @@ export const ClaudeAIProcessor = () => {
 
         {/* Process Button */}
         <Button
-          onClick={processWithClaude}
+              onClick={processPresentation}
           disabled={!apiKey || slides.length === 0 || !hasScript || processing || connectionStatus !== 'connected'}
           className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
