@@ -5,14 +5,15 @@ import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
 import { ScriptUpload } from './features/script/components/ScriptUpload';
 import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
-import { AIPremiumPanel } from './features/ai-premium/components/AIPremiumPanel';
-// import { PracticeView } from './features/practice/components/PracticeView'; // 📝 Commented out - keeping old three-pane view for reference
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { AIPremiumPanel } from './features/ai-premium/components/AIPremiumPanel';
 import { Check, AlertCircle } from 'lucide-react';
 import { Toaster } from './components/ui/toast';
+import './App.css';
 
 export default function App() {
   const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB } = usePresentationStore();
@@ -64,14 +65,19 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!currentPresentation ? (
-          <EnhancedWelcome 
-            onScriptProvided={(script) => {
-              // Store script in Zustand store for Setup mode access
-              const { setTempUploadedScript } = usePresentationStore.getState();
-              setTempUploadedScript(script);
-              console.log('Script provided and stored in store:', script.substring(0, 50) + '...');
-            }}
-          />
+          <ErrorBoundary
+            fallbackTitle="Welcome Screen Error" 
+            fallbackMessage="There was a problem loading the welcome screen. Please try refreshing the page."
+          >
+            <EnhancedWelcome 
+              onScriptProvided={(script) => {
+                // Store script in Zustand store for Setup mode access
+                const { setTempUploadedScript } = usePresentationStore.getState();
+                setTempUploadedScript(script);
+                console.log('Script provided and stored in store:', script.substring(0, 50) + '...');
+              }}
+            />
+          </ErrorBoundary>
         ) : (
           <Tabs value={currentMode} onValueChange={(value) => setCurrentMode(value as 'setup' | 'practice')} className="w-full">
             {/* Beautiful tab navigation */}
@@ -165,16 +171,22 @@ export default function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScriptUpload 
-                    onScriptUploaded={() => {
-                      console.log('Script uploaded and parsed!');
-                      // Force re-check of setup status
-                      setSetupComplete(true);
-                    }}
-                    onNavigateToPractice={() => {
-                      setCurrentMode('practice');
-                    }}
-                  />
+                  <ErrorBoundary
+                    fallbackTitle="Script Upload Error"
+                    fallbackMessage="There was a problem with the script upload. Please try again."
+                    showHomeButton={false}
+                  >
+                    <ScriptUpload 
+                      onScriptUploaded={() => {
+                        console.log('Script uploaded and parsed!');
+                        // Force re-check of setup status
+                        setSetupComplete(true);
+                      }}
+                      onNavigateToPractice={() => {
+                        setCurrentMode('practice');
+                      }}
+                    />
+                  </ErrorBoundary>
                 </CardContent>
               </Card>
               
@@ -192,7 +204,13 @@ export default function App() {
                     <CardDescription>Navigate through your presentation</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <SlideViewer />
+                    <ErrorBoundary
+                      fallbackTitle="Slide Viewer Error"
+                      fallbackMessage="There was a problem displaying the slides. Please try again."
+                      showHomeButton={false}
+                    >
+                      <SlideViewer />
+                    </ErrorBoundary>
                   </CardContent>
                 </Card>
                 
@@ -202,12 +220,18 @@ export default function App() {
                     <CardDescription>Edit the script for the current slide</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {currentPresentation && (
-                      <ScriptEditor
-                        slideId={currentPresentation.slides[currentSlideIndex]?.id}
-                        initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
-                      />
-                    )}
+                    <ErrorBoundary
+                      fallbackTitle="Script Editor Error"
+                      fallbackMessage="There was a problem with the script editor. Please try again."
+                      showHomeButton={false}
+                    >
+                      {currentPresentation && (
+                        <ScriptEditor
+                          slideId={currentPresentation.slides[currentSlideIndex]?.id}
+                          initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
+                        />
+                      )}
+                    </ErrorBoundary>
                   </CardContent>
                 </Card>
               </div>
@@ -215,9 +239,14 @@ export default function App() {
             
             <TabsContent value="practice" className="p-0">
               {/* 🆕 SIMPLIFIED TWO-PANE PRACTICE VIEW - Full screen layout */}
-              <SimplePracticeView 
-                onBack={() => setCurrentMode('setup')}
-              />
+              <ErrorBoundary
+                fallbackTitle="Practice Mode Error"
+                fallbackMessage="There was a problem loading practice mode. You can try going back to setup."
+              >
+                <SimplePracticeView 
+                  onBack={() => setCurrentMode('setup')}
+                />
+              </ErrorBoundary>
             </TabsContent>
           </Tabs>
         )}
