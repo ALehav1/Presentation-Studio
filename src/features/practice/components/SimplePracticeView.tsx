@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { generateContentGuide, ContentGuide } from '../utils/script-processor';
 import { Card } from '../../../components/ui/card';
@@ -40,21 +40,10 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   const [tempScript, setTempScript] = useState('');
   const [tempGuide, setTempGuide] = useState<ContentGuide | null>(null);
 
-  // Memoize slides array to prevent useEffect dependency issues
-  const slides = useMemo(() => currentPresentation?.slides || [], [currentPresentation?.slides]);
-  const currentSlide = slides[currentSlideIndex];
-  const totalSlides = slides.length;
+  // Get current slide data
+  const currentSlide = currentPresentation?.slides[currentSlideIndex];
+  const totalSlides = currentPresentation?.slides.length || 0;
   
-  // DEBUG: Track script changes in practice mode
-  useEffect(() => {
-    console.log('🎤 PRACTICE MODE DEBUG:', {
-      slideIndex: currentSlideIndex,
-      slideId: currentSlide?.id,
-      hasScript: !!currentSlide?.script,
-      scriptLength: currentSlide?.script?.length || 0,
-      scriptPreview: currentSlide?.script?.substring(0, 100) || 'NO SCRIPT'
-    });
-  }, [currentSlideIndex, currentSlide?.script]);
   
   // Debounced save functions
   const saveScript = useDebouncedCallback((slideId: string, newScript: string) => {
@@ -87,15 +76,15 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     
     // Use timeout to simulate processing and show loading state
     const generateGuide = () => {
-      const previousScript = currentSlideIndex > 0 
-        ? slides[currentSlideIndex - 1]?.script 
-        : undefined;
+      const prevScript = currentSlideIndex > 0
+        ? currentPresentation?.slides[currentSlideIndex - 1]?.script
+        : null;
       
-      const nextScript = currentSlideIndex < slides.length - 1 
-        ? slides[currentSlideIndex + 1]?.script 
-        : undefined;
+      const nextScript = currentSlideIndex < totalSlides - 1
+        ? currentPresentation?.slides[currentSlideIndex + 1]?.script
+        : null;
 
-      const guide = generateContentGuide(currentSlide.script, previousScript, nextScript);
+      const guide = generateContentGuide(currentSlide.script, prevScript || undefined, nextScript || undefined);
       setContentGuide(guide);
       setIsGeneratingGuide(false);
     };
@@ -103,7 +92,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     // Brief delay to show loading state, then generate guide
     const timer = setTimeout(generateGuide, 200);
     return () => clearTimeout(timer);
-  }, [currentSlide, currentSlideIndex, slides]);
+  }, [currentSlide, currentSlideIndex, currentPresentation?.slides]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -549,7 +538,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
         </Button>
         
         <div className="flex items-center gap-3 px-4">
-          {slides.map((_, index) => (
+          {Array.from({ length: totalSlides }).map((_, index) => (
             <button
               key={index}
               onClick={() => handleSlideSelect(index)}

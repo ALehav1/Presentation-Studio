@@ -31,15 +31,6 @@ export function PracticeView({ onBackToPreparation }: PracticeViewProps) {
   const currentSlide = currentPresentation?.slides[currentSlideIndex];
   const totalSlides = currentPresentation?.slides.length || 0;
   
-  // DEBUG: Log the script allocation
-  console.log('📝 SCRIPT ALLOCATION DEBUG:', {
-    presentationExists: !!currentPresentation,
-    slideCount: totalSlides,
-    currentIndex: currentSlideIndex,
-    currentSlideId: currentSlide?.id,
-    currentSlideScript: currentSlide?.script,
-    currentSlideScriptLength: currentSlide?.script?.length || 0
-  });
 
   // Keyboard navigation
   useEffect(() => {
