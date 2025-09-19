@@ -51,6 +51,8 @@ export const SimpleOpenAIProcessor = () => {
   };
 
   const handleProcess = () => {
+    console.log('🔘 Process button clicked! Connection status:', connectionStatus);
+    
     if (connectionStatus !== 'connected') {
       alert('Please test your OpenAI connection first');
       return;
