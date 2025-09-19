@@ -152,11 +152,17 @@ export const SimpleOpenAIProcessor = () => {
         </div>
       </div>
 
+      {/* Debug Status */}
+      <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
+        <strong>Debug:</strong> Connection Status = "{connectionStatus}" 
+        {connectionStatus === 'connected' ? ' ✅ Button should work' : ' ❌ Button disabled'}
+      </div>
+
       {/* Process Button */}
       <Button
         onClick={handleProcess}
         disabled={connectionStatus !== 'connected'}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
         size="lg"
       >
         <div className="flex items-center gap-2">
