@@ -43,8 +43,8 @@ export type CoachingResponse = { success: true; coaching: Coaching } | { success
 
 type OpenAIServiceOpts = {
   apiKey?: string;            // Optional; defaults to process.env.OPENAI_API_KEY
-  visionModel?: string;       // default: "gpt-5"
-  textModel?: string;         // default: "gpt-5"
+  visionModel?: string;       // default: "gpt-4o"
+  textModel?: string;         // default: "gpt-4o"
   hardTokenCap?: number;      // default: 4096 output tokens
   temperature?: number;       // default: 0.2
 };
@@ -61,8 +61,8 @@ export class OpenAIService {
       apiKey: opts.apiKey || process.env.OPENAI_API_KEY,
       dangerouslyAllowBrowser: true 
     });
-    this.visionModel = opts.visionModel || "gpt-5";    // fallback at runtime to "gpt-4o" if needed
-    this.textModel = opts.textModel || "gpt-5";
+    this.visionModel = opts.visionModel || "gpt-4o";    // Current best vision model
+    this.textModel = opts.textModel || "gpt-4o";
     this.hardTokenCap = opts.hardTokenCap ?? 4096;     // give GPT-5 more room to reason
     this.temperature = opts.temperature ?? 0.2;
   }
@@ -131,7 +131,7 @@ export class OpenAIService {
   }> {
     try {
       const res = await this.client.chat.completions.create({
-        model: this.textModel,               // "gpt-5"
+        model: this.textModel,               // "gpt-4o"
         temperature: 0.1,
         max_completion_tokens: 256,              // small, uniform budget
         response_format: { type: "json_object" },
@@ -191,7 +191,7 @@ Return JSON:
   ): Promise<ScriptMatchingResponse> {
     try {
       const res = await this.client.chat.completions.create({
-        model: this.textModel,     // "gpt-5"
+        model: this.textModel,     // "gpt-4o"
         temperature: 0.1,
         max_completion_tokens: this.hardTokenCap,  // consider 4096 for rich rationale
         response_format: { type: "json_object" },

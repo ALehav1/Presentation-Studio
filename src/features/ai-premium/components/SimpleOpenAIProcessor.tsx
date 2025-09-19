@@ -22,8 +22,8 @@ export const SimpleOpenAIProcessor = () => {
   // Initialize OpenAI service
   const ai = new OpenAIService({
     apiKey,
-    textModel: "gpt-5",
-    visionModel: "gpt-5",
+    textModel: "gpt-4o",
+    visionModel: "gpt-4o", 
     hardTokenCap: 4096,
   });
 
