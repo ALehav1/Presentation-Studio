@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Brain, Key, CheckCircle, Loader2 } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
+import { OpenAIService } from '../../../services/openai-service';
 
 export const SimpleOpenAIProcessor = () => {
   const { currentPresentation, updateSlideScript } = usePresentationStore();
@@ -13,136 +14,18 @@ export const SimpleOpenAIProcessor = () => {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
-  const [totalSteps] = useState(3);
+  const [totalSteps] = useState(4);
 
   const slides = currentPresentation?.slides || [];
   const hasScript = Boolean(currentPresentation?.fullScript);
 
-  // Helper function to analyze slide with OpenAI Vision
-  const analyzeSlideWithVision = async (imageUrl: string, slideNumber: number) => {
-    try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey,
-          model: 'gpt-4o-mini',
-          max_tokens: 800,
-          temperature: 0.1,
-          messages: [{
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Analyze this presentation slide and extract:
-1. Main topic/title
-2. Key points (bullet points, main ideas)
-3. Visual elements (charts, images, diagrams)
-
-Return ONLY JSON in this format:
-{
-  "slideNumber": ${slideNumber},
-  "mainTopic": "string",
-  "keyPoints": ["string", "string"],
-  "visualElements": ["string", "string"]
-}`
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl,
-                  detail: 'high'
-                }
-              }
-            ]
-          }]
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || '{}';
-        
-        console.log('🔍 OpenAI Vision raw response:', content.substring(0, 200));
-        
-        try {
-          const parsed = JSON.parse(content);
-          return { success: true, data: parsed };
-        } catch (parseError) {
-          console.error('❌ JSON parse failed. Raw content:', content);
-          return { success: false, error: `Failed to parse OpenAI response: ${content.substring(0, 100)}` };
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Vision API error:', errorData);
-        return { success: false, error: `API error: ${response.status} - ${JSON.stringify(errorData)}` };
-      }
-    } catch (error) {
-      return { success: false, error: `Network error: ${error}` };
-    }
-  };
-
-  // Helper function to match script to slides
-  const matchScriptToSlides = async (slideAnalyses: unknown[], fullScript: string) => {
-    try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey,
-          model: 'gpt-4o-mini',
-          max_tokens: 2000,
-          temperature: 0.1,
-          reasoning_effort: 'high',
-          verbosity: 'high',
-          messages: [{
-            role: 'user',
-            content: `You are an expert presentation coach. Match this script to the slides by:
-
-1. Analyzing slide topics and content
-2. Segmenting the script into coherent sections
-3. Mapping each section to the most appropriate slide
-4. Ensuring natural flow and logical progression
-
-SLIDES:
-${JSON.stringify(slideAnalyses, null, 2)}
-
-FULL SCRIPT:
-${fullScript}
-
-Return ONLY JSON in this format:
-{
-  "success": true,
-  "matches": [
-    {
-      "slideNumber": 1,
-      "scriptSection": "exact text from script for this slide",
-      "confidence": 85,
-      "reasoning": "why this section matches this slide"
-    }
-  ]
-}`
-          }]
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || '{}';
-        
-        try {
-          const parsed = JSON.parse(content);
-          return parsed;
-        } catch {
-          return { success: false, error: 'Failed to parse script matching response' };
-        }
-      } else {
-        return { success: false, error: `API error: ${response.status}` };
-      }
-    } catch (error) {
-      return { success: false, error: `Network error: ${error}` };
-    }
-  };
+  // Initialize OpenAI service
+  const ai = new OpenAIService({
+    apiKey,
+    textModel: "gpt-5",
+    visionModel: "gpt-5",
+    hardTokenCap: 4096,
+  });
 
   const testConnection = async () => {
     console.log('🔑 Frontend apiKey value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'EMPTY');
@@ -217,16 +100,6 @@ Return ONLY JSON in this format:
     setProcessing(true);
     setCurrentStep(0);
     
-    console.log('🔍 PROCESSING DEBUG:');
-    console.log('- Slides count:', slides.length);
-    console.log('- Has script:', hasScript);
-    console.log('- Script length:', currentPresentation?.fullScript?.length || 0);
-    console.log('- Sample slide URLs:', slides.slice(0, 2).map((s, i) => ({ 
-      index: i, 
-      hasUrl: Boolean(s.imageUrl), 
-      urlStart: s.imageUrl?.substring(0, 20) 
-    })));
-    
     try {
       // STEP 1: Analyze all slides with vision
       setCurrentStep(1);
@@ -237,56 +110,70 @@ Return ONLY JSON in this format:
       for (let i = 0; i < slides.length; i++) {
         setProgress(`🔍 Analyzing slide ${i + 1} of ${slides.length}...`);
         
-        console.log(`🔍 Analyzing slide ${i + 1}, imageUrl exists:`, Boolean(slides[i].imageUrl));
-        
-        const analysis = await analyzeSlideWithVision(slides[i].imageUrl, i + 1);
-        
-        console.log(`🔍 Analysis result for slide ${i + 1}:`, { success: analysis.success, error: analysis.error });
+        const analysis = await ai.analyzeSlideWithVision(slides[i].imageUrl!, i + 1);
         
         if (analysis.success) {
-          slideAnalyses.push(analysis.data);
-          console.log(`✅ Slide ${i + 1} analyzed:`, analysis.data?.mainTopic);
+          slideAnalyses.push(analysis.analysis);
+          console.log(`✅ Slide ${i + 1} analyzed:`, analysis.analysis.mainTopic);
         } else {
           console.error(`❌ Failed to analyze slide ${i + 1}:`, analysis.error);
-          // Add placeholder to continue
+          // Add fallback analysis to continue
           slideAnalyses.push({
-            slideNumber: i + 1,
+            allText: `Slide ${i + 1} content`,
             mainTopic: `Slide ${i + 1}`,
             keyPoints: ['Unable to analyze content'],
-            visualElements: []
+            visualElements: [],
+            suggestedTalkingPoints: [],
+            emotionalTone: 'professional',
+            complexity: 'moderate',
+            recommendedDuration: 60
           });
         }
       }
 
-      // STEP 2: Match script to slides
+      // STEP 2: Create slide summaries for matching
       setCurrentStep(2);
-      setProgress('🎯 Matching script to slides with AI...');
+      setProgress('📝 Creating slide summaries for intelligent matching...');
       
-      const scriptMatches = await matchScriptToSlides(slideAnalyses, currentPresentation?.fullScript || '');
+      const slideSummaries = await ai.summarizeAllSlidesForMatching(slideAnalyses);
+      console.log('✅ Slide summaries created:', slideSummaries.length);
+
+      // STEP 3: Match script to slide summaries
+      setProgress('🎯 Matching script to slides with GPT-5...');
+      
+      const scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, currentPresentation?.fullScript || '');
       
       if (scriptMatches.success) {
-        console.log('✅ Script matching completed:', scriptMatches.matches?.length, 'sections');
+        console.log('✅ Script matching completed:', scriptMatches.matches.length, 'sections');
         
-        // STEP 3: Update slide scripts
+        // STEP 4: Update slide scripts
         setCurrentStep(3);
         setProgress('💾 Saving matched script sections...');
         
-        scriptMatches.matches?.forEach((match: any, index: number) => {
-          if (slides[index]) {
-            updateSlideScript(slides[index].id, match.scriptSection);
+        scriptMatches.matches.forEach((match) => {
+          const slide = slides.find(s => s.id === `slide-${currentPresentation?.id}-${match.slideNumber - 1}`);
+          if (slide) {
+            updateSlideScript(slide.id, match.scriptSection);
           }
         });
+
+        setProgress('✅ Processing complete!');
+        alert(`🎉 OpenAI processing complete! 
+        
+✅ ${slideAnalyses.length} slides analyzed
+✅ ${scriptMatches.matches.length} script sections matched
+✅ Average confidence: ${Math.round(scriptMatches.matches.reduce((sum, m) => sum + m.confidence, 0) / scriptMatches.matches.length)}%
+
+Check your slides for the matched script sections and confidence ratings!`);
       } else {
         console.error('❌ Script matching failed:', scriptMatches.error);
+        alert(`❌ Script matching failed: ${scriptMatches.error}`);
       }
-
-      setProgress('✅ Processing complete!');
-      alert('🎉 OpenAI processing complete! Check your slides for the matched script sections.');
       
     } catch (error) {
       console.error('❌ Processing error:', error);
       setProgress('❌ Processing failed');
-      alert('❌ Processing failed. Check console for details.');
+      alert(`❌ Processing failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessing(false);
       setCurrentStep(0);
