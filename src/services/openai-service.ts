@@ -57,7 +57,10 @@ export class OpenAIService {
   private temperature: number;
 
   constructor(opts: OpenAIServiceOpts = {}) {
-    this.client = new OpenAI({ apiKey: opts.apiKey || process.env.OPENAI_API_KEY });
+    this.client = new OpenAI({ 
+      apiKey: opts.apiKey || process.env.OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true 
+    });
     this.visionModel = opts.visionModel || "gpt-5";    // fallback at runtime to "gpt-4o" if needed
     this.textModel = opts.textModel || "gpt-5";
     this.hardTokenCap = opts.hardTokenCap ?? 4096;     // give GPT-5 more room to reason
