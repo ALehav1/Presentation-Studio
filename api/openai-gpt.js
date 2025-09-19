@@ -13,7 +13,15 @@ export default async function handler(req) {
   }
 
   try {
-    const { apiKey, model, messages, max_tokens, temperature = 0.7 } = await req.json();
+    const { 
+      apiKey, 
+      model, 
+      messages, 
+      max_tokens, 
+      temperature = 0.7,
+      reasoning_effort,
+      verbosity 
+    } = await req.json();
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'API key required' }), {
@@ -29,10 +37,12 @@ export default async function handler(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'gpt-3.5-turbo',
+        model: model || 'gpt-5',
         messages: messages || [{ role: 'user', content: 'Hello' }],
         max_tokens: max_tokens || 100,
         temperature,
+        ...(reasoning_effort && { reasoning_effort }),
+        ...(verbosity && { verbosity }),
       }),
     });
 
