@@ -72,7 +72,7 @@ export const OpenAIProcessor = () => {
       console.log('🔗 Testing OpenAI connection...');
       
       // Simple test call using our Edge Function
-      const response = await fetch('/api/openai', {
+      const response = await fetch('/api/openai-gpt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

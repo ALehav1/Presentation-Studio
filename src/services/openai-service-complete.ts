@@ -26,7 +26,7 @@ export class OpenAIService {
   private apiKey: string = '';
   private readonly textModel: string = 'gpt-4o-mini'; // Cost-effective for text
   private readonly visionModel: string = 'gpt-4o';     // Required for vision
-  private readonly apiRoute: string = '/api/openai';
+  private readonly apiRoute: string = '/api/openai-gpt';
 
   setApiKey(apiKey: string) {
     this.apiKey = apiKey;
