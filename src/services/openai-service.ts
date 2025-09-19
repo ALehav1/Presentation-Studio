@@ -40,26 +40,52 @@ export type Coaching = {
 
 export type CoachingResponse = { success: true; coaching: Coaching } | { success: false; error: string };
 
+export type SlideSummary = {
+  slideNumber: number;
+  summary: string;
+  tags: string[];
+};
+
+// For testing: mockable client interface
+export type OpenAIClientLike = {
+  chat: { 
+    completions: { 
+      create: (args: unknown) => Promise<{ 
+        choices: Array<{ 
+          message: { 
+            content: string;
+          };
+        }>;
+      }>;
+    };
+  };
+};
+
 type OpenAIServiceOpts = {
   apiKey?: string;            // Optional; defaults to process.env.OPENAI_API_KEY
-  visionModel?: string;       // default: "gpt-4o-mini"
-  textModel?: string;         // default: "gpt-4.1-mini"
-  hardTokenCap?: number;      // default: 2048 output tokens
+  visionModel?: string;       // default: "gpt-5"
+  textModel?: string;         // default: "gpt-5"
+  hardTokenCap?: number;      // default: 4096 output tokens
   temperature?: number;       // default: 0.2
+  client?: OpenAIClientLike;  // For testing: inject mock client
 };
 
 export class OpenAIService {
-  private client: OpenAI;
+  private client: OpenAIClientLike;
   private visionModel: string;
   private textModel: string;
   private hardTokenCap: number;
   private temperature: number;
 
   constructor(opts: OpenAIServiceOpts = {}) {
-    this.client = new OpenAI({ apiKey: opts.apiKey || process.env.OPENAI_API_KEY });
-    this.visionModel = opts.visionModel || "gpt-4o-mini";
-    this.textModel = opts.textModel || "gpt-4.1-mini";
-    this.hardTokenCap = opts.hardTokenCap ?? 2048;
+    // Use injected client for testing, otherwise create real OpenAI client
+    this.client = opts.client ?? new OpenAI({ 
+      apiKey: opts.apiKey || process.env.OPENAI_API_KEY 
+    }) as OpenAIClientLike;
+    
+    this.visionModel = opts.visionModel || "gpt-5";
+    this.textModel = opts.textModel || "gpt-5";
+    this.hardTokenCap = opts.hardTokenCap ?? 4096;
     this.temperature = opts.temperature ?? 0.2;
 
     console.log('🤖 OpenAI Service initialized with models:', {
@@ -68,98 +94,64 @@ export class OpenAIService {
     });
   }
 
-  async matchScriptToSlidesIntelligently(
-    slideAnalyses: any[],
+  /**
+   * Two-pass intelligent script matching: summaries → matching
+   * This replaces the old single-pass approach for better results
+   */
+  async matchScriptToSlidesFromSummaries(
+    summaries: SlideSummary[],
     fullScript: string
-  ): Promise<{
-    success: boolean;
-    matches?: Array<{
-      slideNumber: number;
-      scriptSection: string;
-      confidence: number;
-      reasoning: string;
-      keyAlignment: string[];
-    }>;
-    error?: string;
-  }> {
-    if (!this.apiKey) {
-      return { success: false, error: 'Please add your OpenAI API key' };
-    }
-
-    console.log('🤖 OpenAI intelligently matching script to slide topics...');
+  ): Promise<ScriptMatchingResponse> {
+    console.log('🎯 Two-pass matching: Using slide summaries for intelligent script allocation...');
     
     try {
-      const prompt = `You are an expert presentation coach. Match this script to slide topics intelligently.
+      const prompt = `You are an expert presentation coach. Match this script to slide summaries intelligently.
 
-SLIDE TOPICS:
-${slideAnalyses.map((s, i) => `${i + 1}. ${s.mainTopic} - Key points: ${s.keyPoints?.join(', ') || 'N/A'}`).join('\n')}
+SLIDE SUMMARIES:
+${summaries.map(s => `${s.slideNumber}. ${s.summary} (tags: ${s.tags.join(', ')})`).join('\n')}
 
 FULL SCRIPT TO MATCH:
 ${fullScript}
 
-Task: Divide the script into exactly ${slideAnalyses.length} sections that align with the slide topics above.
+Task: Divide the script into exactly ${summaries.length} sections that align with the slide summaries above.
 
-CRITICAL: Return ONLY a valid JSON array of strings. No explanations, no commentary.
-Format: ["script for slide 1", "script for slide 2", ...]`;
+Return ONLY valid JSON:
+{
+  "success": true,
+  "matches": [
+    {
+      "slideNumber": 1,
+      "scriptSection": "script text for slide 1...",
+      "confidence": 85,
+      "reasoning": "Strong topic alignment between script and slide",
+      "keyAlignment": ["keyword1", "keyword2"]
+    }
+  ]
+}`;
 
-      const response = await fetch(this.apiRoute, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: this.apiKey,
-          model: this.model,
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+      const response = await this.client.chat.completions.create({
+        model: this.textModel,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: this.hardTokenCap,
+        temperature: this.temperature,
+        response_format: { type: "json_object" }
       });
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
+      const content = response.choices[0].message.content;
+      const result = this.safeJsonParse(content);
       
-      console.log('📄 OpenAI response preview:', content.substring(0, 300));
-
-      try {
-        // OpenAI typically returns cleaner JSON than Claude
-        const scriptSections = JSON.parse(content);
-        
-        if (!Array.isArray(scriptSections)) {
-          throw new Error('Response is not an array');
-        }
-
-        console.log('✅ Successfully parsed', scriptSections.length, 'AI-matched sections');
-
-        // Ensure exact count
-        let finalSections = scriptSections.slice(0, slideAnalyses.length);
-        while (finalSections.length < slideAnalyses.length) {
-          finalSections.push(`Script section ${finalSections.length + 1}`);
-        }
-
-        const matches = finalSections.map((section: string, i: number) => ({
-          slideNumber: i + 1,
-          scriptSection: section.trim() || `Script section ${i + 1}`,
-          confidence: 95,
-          reasoning: 'OpenAI content matching with topic alignment',
-          keyAlignment: this.findKeyAlignments(section, slideAnalyses[i])
-        }));
-
-        console.log(`🎯 Successfully matched script using OpenAI intelligence!`);
-        
-        return { success: true, matches };
-
-      } catch (parseError) {
-        console.error('⚠️ OpenAI JSON parse failed:', parseError);
-        throw new Error('Failed to parse OpenAI response');
+      if (result.success && result.matches) {
+        console.log(`✅ Two-pass matching complete: ${result.matches.length} matches`);
+        return result;
       }
+      
+      throw new Error('Invalid response structure');
 
     } catch (error) {
-      console.error('❌ OpenAI matching failed:', error);
+      console.error('❌ Two-pass matching failed:', error);
       
       // Fallback to semantic split
-      const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
+      const fallbackSections = this.fallbackSemanticSplit(fullScript, summaries.length);
       
       return {
         success: true,
@@ -167,105 +159,291 @@ Format: ["script for slide 1", "script for slide 2", ...]`;
           slideNumber: i + 1,
           scriptSection: section,
           confidence: 70,
-          reasoning: 'Semantic fallback - OpenAI parsing failed',
+          reasoning: 'Semantic fallback - AI matching failed',
           keyAlignment: []
         }))
       };
     }
   }
 
+  /**
+   * Analyze slide content using GPT Vision with fallback to gpt-4o
+   */
   async analyzeSlideWithVision(
     imageBase64: string,
     slideNumber: number
-  ): Promise<{ success: boolean; analysis?: any; error?: string }> {
-    if (!this.apiKey) {
-      return { success: false, error: 'No API key provided' };
-    }
-
-    try {
-      console.log(`🔍 OpenAI analyzing slide ${slideNumber}...`);
-      
-      const prompt = `Analyze this presentation slide and return ONLY a JSON object:
+  ): Promise<SlideAnalysisResponse> {
+    console.log(`🔍 Analyzing slide ${slideNumber} with ${this.visionModel}...`);
+    
+    const prompt = `Analyze this presentation slide and return ONLY a JSON object:
 {
-  "allText": "All visible text on the slide",
-  "mainTopic": "Primary topic/theme of the slide",
-  "keyPoints": ["key point 1", "key point 2", "key point 3"],
-  "visualElements": ["chart", "diagram", "image", "etc"],
-  "suggestedTalkingPoints": ["talking point 1", "talking point 2"],
-  "emotionalTone": "professional/energetic/serious",
-  "complexity": "simple/moderate/complex",
-  "recommendedDuration": 60
+  "success": true,
+  "analysis": {
+    "allText": "All visible text on the slide",
+    "mainTopic": "Primary topic/theme of the slide",
+    "keyPoints": ["key point 1", "key point 2", "key point 3"],
+    "visualElements": ["chart", "diagram", "image", "etc"],
+    "suggestedTalkingPoints": ["talking point 1", "talking point 2"],
+    "emotionalTone": "professional",
+    "complexity": "moderate",
+    "recommendedDuration": 60
+  }
 }`;
+    
+    try {
+      // Try primary vision model first (gpt-5)
+      const response = await this.client.chat.completions.create({
+        model: this.visionModel,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { 
+              type: 'image_url', 
+              image_url: { 
+                url: `data:image/png;base64,${imageBase64}`,
+                detail: "high"
+              } 
+            }
+          ]
+        }],
+        max_tokens: 1024,
+        temperature: this.temperature,
+        response_format: { type: "json_object" }
+      });
 
-      const response = await fetch(this.apiRoute, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: this.apiKey,
-          model: 'gpt-4o',
-          max_tokens: 1000,
+      const content = response.choices[0].message.content;
+      const result = this.safeJsonParse(content);
+      
+      if (result.success && result.analysis) {
+        console.log(`✅ Successfully analyzed slide ${slideNumber}`);
+        return result;
+      }
+      
+      throw new Error('Invalid response structure');
+
+    } catch {
+      console.warn(`⚠️ ${this.visionModel} failed for slide ${slideNumber}, trying fallback...`);
+      
+      try {
+        // Fallback to gpt-4o
+        const response = await this.client.chat.completions.create({
+          model: "gpt-4o",
           messages: [{
             role: 'user',
             content: [
               { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } }
+              { 
+                type: 'image_url', 
+                image_url: { 
+                  url: `data:image/png;base64,${imageBase64}`,
+                  detail: "high"
+                } 
+              }
             ]
-          }]
-        })
-      });
+          }],
+          max_tokens: 1024,
+          temperature: this.temperature,
+          response_format: { type: "json_object" }
+        });
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
-
-      try {
-        const analysis = JSON.parse(content);
-        console.log(`✅ OpenAI analyzed slide ${slideNumber}:`, analysis);
-        return { success: true, analysis };
-      } catch (parseError) {
-        console.log(`⚠️ Using fallback analysis for slide ${slideNumber}`);
+        const content = response.choices[0].message.content;
+        const result = this.safeJsonParse(content);
+        
+        if (result.success && result.analysis) {
+          console.log(`✅ Fallback analysis succeeded for slide ${slideNumber}`);
+          return result;
+        }
+        
+        throw new Error('Fallback also failed');
+        
+      } catch (fallbackError) {
+        console.error(`❌ Both vision models failed for slide ${slideNumber}:`, fallbackError);
+        
+        // Return default analysis
         return {
           success: true,
-          analysis: {
-            allText: `Slide ${slideNumber}`,
-            mainTopic: 'Presentation slide',
-            keyPoints: ['Content analysis pending'],
-            visualElements: [],
-            suggestedTalkingPoints: ['Present this slide clearly'],
-            emotionalTone: 'professional',
-            complexity: 'moderate',
-            recommendedDuration: 60
-          }
+          analysis: this.getDefaultSlideAnalysis(slideNumber)
         };
       }
-
-    } catch (error) {
-      console.error('❌ OpenAI analysis error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Analysis failed' };
     }
   }
 
-  private findKeyAlignments(scriptSection: string, slideAnalysis: any): string[] {
-    if (!slideAnalysis || !scriptSection) return [];
+  /**
+   * Generate compact slide summaries for two-pass matching
+   */
+  async summarizeSlideForMatching(
+    slideNumber: number,
+    analysis: SlideAnalysis
+  ): Promise<SlideSummary> {
+    try {
+      const prompt = `Create a compact summary for script matching.
+
+Slide ${slideNumber} Analysis:
+- Topic: ${analysis.mainTopic}
+- Key Points: ${analysis.keyPoints.join(', ')}
+- Text: ${analysis.allText}
+
+Return ONLY JSON:
+{
+  "slideNumber": ${slideNumber},
+  "summary": "2-3 sentence summary for matching",
+  "tags": ["tag1", "tag2", "tag3"]
+}`;
+
+      const response = await this.client.chat.completions.create({
+        model: this.textModel,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 256,
+        temperature: this.temperature,
+        response_format: { type: "json_object" }
+      });
+
+      const content = response.choices[0].message.content;
+      const result = JSON.parse(content);
+      
+      return {
+        slideNumber: result.slideNumber || slideNumber,
+        summary: result.summary || `Slide ${slideNumber} summary`,
+        tags: result.tags || []
+      };
+      
+    } catch {
+      console.warn(`⚠️ Summary generation failed for slide ${slideNumber}, using fallback`);
+      
+      // Local fallback
+      return {
+        slideNumber,
+        summary: `${analysis.mainTopic}. ${analysis.keyPoints.slice(0, 2).join('. ')}.`,
+        tags: analysis.keyPoints.slice(0, 3).map(p => p.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      };
+    }
+  }
+
+  /**
+   * Process all slide analyses into summaries for matching
+   */
+  async summarizeAllSlidesForMatching(
+    analyses: SlideAnalysis[]
+  ): Promise<SlideSummary[]> {
+    console.log(`📋 Generating summaries for ${analyses.length} slides...`);
     
-    const alignments: string[] = [];
-    const scriptLower = scriptSection.toLowerCase();
+    const summaries = await Promise.all(
+      analyses.map((analysis, index) => 
+        this.summarizeSlideForMatching(index + 1, analysis)
+      )
+    );
     
-    if (slideAnalysis.mainTopic) {
-      const topicWords = slideAnalysis.mainTopic.toLowerCase().split(' ');
-      for (const word of topicWords) {
-        if (word.length > 3 && scriptLower.includes(word)) {
-          alignments.push(word);
+    console.log(`✅ Generated ${summaries.length} slide summaries`);
+    return summaries;
+  }
+
+  /**
+   * Generate expert presentation coaching for a slide
+   */
+  async generateExpertCoaching(
+    analysis: SlideAnalysis,
+    scriptSection: string
+  ): Promise<CoachingResponse> {
+    try {
+      const prompt = `Generate expert presentation coaching for this slide.
+
+Slide Content:
+- Topic: ${analysis.mainTopic}
+- Key Points: ${analysis.keyPoints.join(', ')}
+- Tone: ${analysis.emotionalTone}
+- Duration: ${analysis.recommendedDuration}s
+
+Script Section:
+${scriptSection}
+
+Return ONLY JSON:
+{
+  "success": true,
+  "coaching": {
+    "openingStrategy": "How to start this slide",
+    "keyEmphasisPoints": ["point1", "point2"],
+    "bodyLanguageTips": ["tip1", "tip2"],
+    "voiceModulation": ["voice tip1", "voice tip2"],
+    "audienceEngagement": ["engagement tip1"],
+    "transitionToNext": "How to transition to next slide",
+    "timingRecommendation": "60 seconds - take time to explain",
+    "potentialQuestions": ["What might audience ask?"],
+    "commonMistakes": ["What to avoid"],
+    "energyLevel": "high"
+  }
+}`;
+
+      const response = await this.client.chat.completions.create({
+        model: this.textModel,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024,
+        temperature: this.temperature,
+        response_format: { type: "json_object" }
+      });
+
+      const content = response.choices[0].message.content;
+      const result = this.safeJsonParse(content);
+      
+      if (result.success && result.coaching) {
+        return result;
+      }
+      
+      throw new Error('Invalid coaching response');
+      
+    } catch (error) {
+      console.error('❌ Coaching generation failed:', error);
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Coaching generation failed'
+      };
+    }
+  }
+
+  /**
+   * Safe JSON parsing with defense against noisy wrappers
+   */
+  private safeJsonParse(content: string): unknown {
+    if (!content) return { success: false, error: 'Empty response' };
+    
+    try {
+      // First try direct parse
+      return JSON.parse(content);
+    } catch {
+      // Try to extract JSON from noisy content
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch {
+          // Final fallback
+          return { success: false, error: 'Could not parse JSON response' };
         }
       }
+      return { success: false, error: 'No JSON found in response' };
     }
-    
-    return alignments.slice(0, 3);
   }
 
+  /**
+   * Default analysis when vision fails
+   */
+  private getDefaultSlideAnalysis(slideNumber: number): SlideAnalysis {
+    return {
+      allText: `Slide ${slideNumber}`,
+      mainTopic: `Presentation slide ${slideNumber}`,
+      keyPoints: ['Content analysis pending'],
+      visualElements: [],
+      suggestedTalkingPoints: ['Present this slide clearly'],
+      emotionalTone: 'professional',
+      complexity: 'moderate',
+      recommendedDuration: 60
+    };
+  }
+
+  /**
+   * Fallback semantic split when AI fails
+   */
   private fallbackSemanticSplit(script: string, count: number): string[] {
     const sentences = script.match(/[^.!?]+[.!?]+/g) || [script];
     const sentencesPerSection = Math.ceil(sentences.length / count);
@@ -281,3 +459,15 @@ Format: ["script for slide 1", "script for slide 2", ...]`;
     return sections;
   }
 }
+
+// Default analysis for testing
+export const getDefaultSlideAnalysis = (slideNumber: number): SlideAnalysis => ({
+  allText: `Slide ${slideNumber} content`,
+  mainTopic: `Topic for slide ${slideNumber}`,
+  keyPoints: ['Key point 1', 'Key point 2'],
+  visualElements: ['chart', 'text'],
+  suggestedTalkingPoints: ['Present clearly', 'Engage audience'],
+  emotionalTone: 'professional',
+  complexity: 'moderate',
+  recommendedDuration: 60
+});
