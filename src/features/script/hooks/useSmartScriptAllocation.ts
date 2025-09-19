@@ -50,10 +50,33 @@ export const useSmartScriptAllocation = (
       // Calculate what's left to distribute
       let remainingScript = fullScript;
       
-      // Remove manually allocated parts from the full script
+      // Remove manually allocated parts from the full script - SAFE VERSION
       const manualParts = manualContent.split('\n').filter(line => line.trim());
+      const usedPositions: Array<{start: number, end: number}> = [];
+      
+      // Find positions of manually allocated text
       for (const part of manualParts) {
-        remainingScript = remainingScript.replace(part, '');
+        const partIndex = remainingScript.indexOf(part);
+        if (partIndex !== -1) {
+          // Check if this position overlaps with already used positions
+          const overlaps = usedPositions.some(used => 
+            (partIndex >= used.start && partIndex < used.end) ||
+            (partIndex + part.length > used.start && partIndex + part.length <= used.end)
+          );
+          
+          if (!overlaps) {
+            usedPositions.push({
+              start: partIndex,
+              end: partIndex + part.length
+            });
+          }
+        }
+      }
+      
+      // Remove from back to front to maintain positions
+      usedPositions.sort((a, b) => b.start - a.start);
+      for (const pos of usedPositions) {
+        remainingScript = remainingScript.slice(0, pos.start) + remainingScript.slice(pos.end);
       }
       
       remainingScript = remainingScript.replace(/\n{3,}/g, '\n\n').trim();
@@ -97,8 +120,30 @@ export const useSmartScriptAllocation = (
       
       let remainingScript = fullScript;
       const manualParts = manualContent.split('\n').filter(line => line.trim());
+      const usedPositions: Array<{start: number, end: number}> = [];
+      
+      // Find positions of manually allocated text (same safe logic as above)
       for (const part of manualParts) {
-        remainingScript = remainingScript.replace(part, '');
+        const partIndex = remainingScript.indexOf(part);
+        if (partIndex !== -1) {
+          const overlaps = usedPositions.some(used => 
+            (partIndex >= used.start && partIndex < used.end) ||
+            (partIndex + part.length > used.start && partIndex + part.length <= used.end)
+          );
+          
+          if (!overlaps) {
+            usedPositions.push({
+              start: partIndex,
+              end: partIndex + part.length
+            });
+          }
+        }
+      }
+      
+      // Remove from back to front
+      usedPositions.sort((a, b) => b.start - a.start);
+      for (const pos of usedPositions) {
+        remainingScript = remainingScript.slice(0, pos.start) + remainingScript.slice(pos.end);
       }
       
       remainingScript = remainingScript.replace(/\n{3,}/g, '\n\n').trim();

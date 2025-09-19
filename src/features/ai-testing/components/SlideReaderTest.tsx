@@ -58,11 +58,12 @@ export const SlideReaderTest = () => {
     aiSlideReader.setApiKey(apiKey);
     const result = await aiSlideReader.readSlide(slides[selectedSlideIndex].imageUrl);
     
-    if (result.success && result.content) {
-      setSlideContent(result.content);
-      console.log('🎉 AI successfully read slide:', result.content);
-    } else {
-      alert(`Error: ${result.error}`);
+    // Handle deprecated AISlideReader result format
+    try {
+      setSlideContent(JSON.stringify(result, null, 2));
+      console.log('🎉 AI successfully read slide:', result);
+    } catch (error) {
+      alert(`Error: ${error}`);
     }
     
     setLoading(false);
