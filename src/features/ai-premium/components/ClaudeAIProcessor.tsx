@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
-// Using direct API calls instead of service class for now
+import { claudeAI } from '../../../services/claude-ai-service';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -35,8 +35,7 @@ interface ProcessingResults {
  */
 export const ClaudeAIProcessor = () => {
   const { currentPresentation, updateSlideScript } = usePresentationStore();
-  const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
-  // Direct API calls for OpenAI integration
+  const [apiKey, setApiKey] = useState(localStorage.getItem('anthropic_api_key') || '');
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ProcessingResults | null>(null);
   const [progress, setProgress] = useState('');
@@ -53,30 +52,13 @@ export const ClaudeAIProcessor = () => {
    */
   const testConnection = async () => {
     setConnectionStatus('testing');
+    claudeAI.setApiKey(apiKey);
     
-    try {
-      // Test OpenAI API connection
-      const response = await fetch('/api/openai-gpt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey,
-          model: "gpt-4o-mini",
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Test' }]
-        })
-      });
-      
-      if (response.ok) {
-        setConnectionStatus('connected');
-        console.log('✅ OpenAI connection successful');
-      } else {
-        setConnectionStatus('failed');
-        console.error('❌ OpenAI connection failed:', response.status);
-      }
-    } catch (error) {
-      setConnectionStatus('failed');
-      console.error('❌ OpenAI connection failed:', error);
+    const result = await claudeAI.testConnection();
+    setConnectionStatus(result.connected ? 'connected' : 'failed');
+    
+    if (!result.connected) {
+      console.error('Connection failed:', result.message);
     }
   };
 
@@ -101,7 +83,9 @@ export const ClaudeAIProcessor = () => {
   /**
    * Main processing function - Claude analyzes everything
    */
-  const processWithClaude = async () => {
+  const processPresentation = async () => {
+    alert('⚠️ OpenAI processing coming soon! Currently switching from Claude to OpenAI backend.');
+    return;
     if (!apiKey) {
       alert('Please add your Anthropic API key first');
       return;
@@ -314,7 +298,7 @@ export const ClaudeAIProcessor = () => {
           <div className="flex items-center gap-2">
             <Key className={`h-4 w-4 ${connectionStatus === 'connected' ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="font-medium text-sm">
-              OpenAI: {connectionStatus === 'connected' ? 'Connected' : 'Not connected'}
+              Claude: {connectionStatus === 'connected' ? 'Connected' : 'Not connected'}
             </span>
           </div>
         </div>
@@ -336,7 +320,7 @@ export const ClaudeAIProcessor = () => {
               onChange={(e) => {
                 const newKey = e.target.value;
                 setApiKey(newKey);
-                localStorage.setItem('openai_api_key', newKey);
+                localStorage.setItem('anthropic_api_key', newKey);
                 setConnectionStatus('unknown');
               }}
               className="flex-1"
