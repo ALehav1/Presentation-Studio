@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
-import { OpenAIService, type SlideAnalysis, type ScriptMatch, type Coaching } from '../../../services/openai-service-production';
+import { OpenAIService, type SlideAnalysis, type ScriptMatch, type Coaching } from '../../../services/openai-service';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
