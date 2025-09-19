@@ -63,14 +63,19 @@ Return ONLY JSON in this format:
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || '{}';
         
+        console.log('🔍 OpenAI Vision raw response:', content.substring(0, 200));
+        
         try {
           const parsed = JSON.parse(content);
           return { success: true, data: parsed };
-        } catch {
-          return { success: false, error: 'Failed to parse OpenAI response' };
+        } catch (parseError) {
+          console.error('❌ JSON parse failed. Raw content:', content);
+          return { success: false, error: `Failed to parse OpenAI response: ${content.substring(0, 100)}` };
         }
       } else {
-        return { success: false, error: `API error: ${response.status}` };
+        const errorData = await response.json();
+        console.error('❌ Vision API error:', errorData);
+        return { success: false, error: `API error: ${response.status} - ${JSON.stringify(errorData)}` };
       }
     } catch (error) {
       return { success: false, error: `Network error: ${error}` };
