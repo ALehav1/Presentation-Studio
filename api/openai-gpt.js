@@ -29,7 +29,7 @@ export default async function handler(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'gpt-4o-mini',
+        model: model || 'gpt-3.5-turbo',
         messages: messages || [{ role: 'user', content: 'Hello' }],
         max_tokens: max_tokens || 100,
         temperature,
@@ -39,7 +39,11 @@ export default async function handler(req) {
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || 'OpenAI API error' }), {
+      console.error('OpenAI API error response:', response.status, data);
+      return new Response(JSON.stringify({ 
+        error: data.error?.message || `OpenAI API error: ${response.status}`,
+        details: data 
+      }), {
         status: response.status,
         headers: { 'Content-Type': 'application/json' },
       });

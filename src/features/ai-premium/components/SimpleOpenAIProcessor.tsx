@@ -23,7 +23,7 @@ export const SimpleOpenAIProcessor = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
-          model: "gpt-4o-mini",
+          model: "gpt-3.5-turbo",
           max_tokens: 10,
           messages: [{ role: 'user', content: 'Test connection' }]
         })
