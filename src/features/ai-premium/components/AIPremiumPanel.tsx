@@ -2,7 +2,7 @@
 // Premium AI panel that can be added to any page
 
 import { useState } from 'react';
-import { ClaudeAIProcessor } from './ClaudeAIProcessor';
+import { SimpleOpenAIProcessor } from './SimpleOpenAIProcessor';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -87,7 +87,7 @@ export const AIPremiumPanel = ({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Click to unlock Claude Sonnet 3.5 - the best AI for presentations
+              Click to unlock GPT-5 with Vision - the most advanced AI for presentations
             </p>
           </div>
         )}
@@ -96,7 +96,7 @@ export const AIPremiumPanel = ({
       {/* Full Processor - Shown when expanded */}
       {isExpanded && (
         <div className="mt-4">
-          <ClaudeAIProcessor />
+          <SimpleOpenAIProcessor />
         </div>
       )}
     </div>
