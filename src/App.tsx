@@ -45,7 +45,7 @@ export default function App() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                PresentationStudio
+                PresentationStudio v2.0
               </h1>
               {currentPresentation && (
                 <Badge variant="secondary">
