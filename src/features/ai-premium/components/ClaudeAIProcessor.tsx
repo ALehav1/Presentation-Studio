@@ -313,8 +313,7 @@ export const ClaudeAIProcessor = () => {
             <Input
               id="api-key"
               type="password"
-{{ ... }}
-              placeholder="sk-ant-api03-..."
+              placeholder="sk-..."
               value={apiKey}
               onChange={(e) => {
                 const newKey = e.target.value;
