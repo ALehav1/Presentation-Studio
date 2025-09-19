@@ -10,8 +10,16 @@ export const SimpleOpenAIProcessor = () => {
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
 
   const testConnection = async () => {
+    console.log('🔑 Frontend apiKey value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'EMPTY');
+    console.log('🔑 LocalStorage value:', localStorage.getItem('openai_api_key') ? `${localStorage.getItem('openai_api_key')?.substring(0, 10)}...` : 'EMPTY');
+    
     if (!apiKey) {
       alert('Please enter your OpenAI API key first');
+      return;
+    }
+
+    if (!apiKey.startsWith('sk-')) {
+      alert('⚠️ Invalid API key format. OpenAI keys start with "sk-"');
       return;
     }
 
