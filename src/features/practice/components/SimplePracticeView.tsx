@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { generateContentGuide, ContentGuide } from '../utils/script-processor';
+import { OpenAIService } from '../../../services/openai-service';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -56,47 +57,147 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     setIsEditingGuide(false);
   }, 1000);
 
-  // Generate content guide for current slide
+  // Generate AI-powered content guide when current slide changes
   useEffect(() => {
-    if (!currentSlide || !currentSlide.script?.trim()) {
+    // Create abort controller for cancellation
+    let isCancelled = false;
+    
+    if (!currentSlide?.script) {
       setContentGuide(null);
       setIsGeneratingGuide(false);
       return;
     }
 
-    // Use existing guide if available, otherwise generate new one
+    // If slide already has a generated guide, use it
     if (currentSlide.guide) {
       setContentGuide(currentSlide.guide);
       setIsGeneratingGuide(false);
       return;
     }
 
-    // Show loading state briefly for better UX
+    // Show loading state and generate AI guide
     setIsGeneratingGuide(true);
     
-    // Use timeout to simulate processing and show loading state
-    const generateGuide = () => {
-      const prevScript = currentSlideIndex > 0
-        ? currentPresentation?.slides[currentSlideIndex - 1]?.script
-        : null;
-      
-      const nextScript = currentSlideIndex < totalSlides - 1
-        ? currentPresentation?.slides[currentSlideIndex + 1]?.script
-        : null;
+    const generateAIGuide = async () => {
+      try {
+        // Check if operation was cancelled before proceeding
+        if (isCancelled) return;
 
-      const guide = generateContentGuide(currentSlide.script, prevScript || undefined, nextScript || undefined);
-      setContentGuide(guide);
-      setIsGeneratingGuide(false);
+        // Get API key from localStorage
+        const apiKey = localStorage.getItem('openai_api_key');
+        if (!apiKey) {
+          console.warn('🤖 No OpenAI key found, using fallback guide generation');
+          
+          if (isCancelled) return;
+          
+          // Fallback to local generation
+          const prevScript = currentSlideIndex > 0
+            ? currentPresentation?.slides[currentSlideIndex - 1]?.script
+            : null;
+          
+          const nextScript = currentSlideIndex < totalSlides - 1
+            ? currentPresentation?.slides[currentSlideIndex + 1]?.script
+            : null;
+
+          const guide = generateContentGuide(currentSlide.script, prevScript || undefined, nextScript || undefined);
+          
+          if (!isCancelled) {
+            setContentGuide(guide);
+            setIsGeneratingGuide(false);
+          }
+          return;
+        }
+
+        if (isCancelled) return;
+
+        // Initialize OpenAI service
+        const ai = new OpenAIService({
+          apiKey,
+          textModel: "gpt-4o",
+          hardTokenCap: 2000,
+        });
+
+        // Get slide analysis (if available) or create basic analysis
+        const slideAnalysis = {
+          allText: currentSlide.script.substring(0, 200) + '...',
+          mainTopic: `Slide ${currentSlideIndex + 1}`,
+          keyPoints: ['Key point from script analysis'],
+          visualElements: [],
+          suggestedTalkingPoints: ['Main talking point from content'],
+          emotionalTone: 'professional' as const,
+          complexity: 'moderate' as const,
+          recommendedDuration: 60
+        };
+
+        console.log(`🤖 Generating AI presenter guidance for slide ${currentSlideIndex + 1}...`);
+        
+        if (isCancelled) return;
+        
+        // Generate AI coaching
+        const coachingResult = await ai.generateExpertCoaching(slideAnalysis, currentSlide.script);
+        
+        if (isCancelled) return;
+        
+        if (coachingResult.success) {
+          // Convert AI coaching to our ContentGuide format
+          const aiGuide: ContentGuide = {
+            transitionFrom: coachingResult.coaching.openingStrategy || 'Smooth transition from previous content',
+            keyMessages: coachingResult.coaching.keyEmphasisPoints || ['Main message from script analysis'],
+            keyConcepts: coachingResult.coaching.audienceEngagement?.slice(0, 3) || ['Key concept from content'],
+            transitionTo: coachingResult.coaching.transitionToNext || 'Prepare for next topic'
+          };
+          
+          if (!isCancelled) {
+            setContentGuide(aiGuide);
+            console.log('✅ AI presenter guidance generated successfully');
+          }
+          
+        } else {
+          throw new Error(coachingResult.error);
+        }
+        
+      } catch (error) {
+        if (isCancelled) return;
+        
+        console.warn('❌ AI guide generation failed, using fallback:', error);
+        
+        // Fallback to local generation
+        const prevScript = currentSlideIndex > 0
+          ? currentPresentation?.slides[currentSlideIndex - 1]?.script
+          : null;
+        
+        const nextScript = currentSlideIndex < totalSlides - 1
+          ? currentPresentation?.slides[currentSlideIndex + 1]?.script
+          : null;
+
+        const guide = generateContentGuide(currentSlide.script, prevScript || undefined, nextScript || undefined);
+        
+        if (!isCancelled) {
+          setContentGuide(guide);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsGeneratingGuide(false);
+        }
+      }
     };
 
-    // Brief delay to show loading state, then generate guide
-    const timer = setTimeout(generateGuide, 200);
-    return () => clearTimeout(timer);
-  }, [currentSlide, currentSlideIndex, currentPresentation?.slides]);
+    generateAIGuide();
+    
+    // Cleanup function to cancel pending operations
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentSlide?.id, currentSlideIndex]); // Use stable dependencies
 
-  // Keyboard navigation
+  // Keyboard navigation with proper cleanup
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle if not typing in an input/textarea
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
@@ -107,14 +208,20 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           nextSlide();
           break;
         case 'Escape':
+          event.preventDefault();
           onBack();
           break;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSlide, previousSlide, onBack]);
+    // Use document instead of window for better event handling
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup function ensures event listener is removed
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty dependency array with stable functions from store
 
   if (!currentPresentation || !currentSlide) {
     return (
@@ -198,11 +305,11 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
       {/* Main Content - New Three Section Layout */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Top Row: Slide + Presenter Guide (Equal sizes, 60% of screen height) */}
-        <div className="h-[60%] flex">
+        {/* Top Row: Slide + Presenter Guide (Mobile-first responsive) */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0">
           
-          {/* Left: Slide Image (50% width) */}
-          <div className="w-1/2 bg-gray-50 flex items-center justify-center relative border-r border-b">
+          {/* Slide Image (Full width on mobile, 50% on desktop) */}
+          <div className="w-full lg:w-1/2 bg-gray-50 flex items-center justify-center relative border-r border-b min-h-[300px] lg:min-h-0">
             {currentSlide.imageUrl ? (
               <img
                 src={currentSlide.imageUrl}
@@ -220,7 +327,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             <Button
               variant="outline"
               size="sm"
-              className="absolute top-4 right-4 opacity-70 hover:opacity-100"
+              className="absolute top-4 right-4 opacity-70 hover:opacity-100 min-h-[44px] min-w-[44px]"
               onClick={() => {
                 // TODO: Implement full-screen slide view
                 console.log('Full-screen slide view');
@@ -230,15 +337,16 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             </Button>
           </div>
 
-          {/* Right: Presenter Guide (50% width, SAME SIZE as slide) */}
+          {/* Presenter Guide (Full width on mobile, 50% on desktop) */}
           {showGuide && (
-            <div className="w-1/2 p-2 border-b">
+            <div className="w-full lg:w-1/2 p-2 border-b min-h-[400px] lg:min-h-0">
               <Card className="h-full flex flex-col">
                 <div className="p-3 border-b bg-gray-50/50 flex-shrink-0 flex justify-between items-center">
                   <h3 className="font-semibold text-base">Presenter Guide</h3>
                   <Button
                     size="sm"
                     variant={isEditingGuide ? "default" : "ghost"}
+                    className="min-h-[44px]"
                     onClick={() => {
                       if (isEditingGuide) {
                         // Save
@@ -408,9 +516,9 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           )}
         </div>
 
-        {/* Bottom Row: Slide Script (100% width, 40% of screen height) */}
+        {/* Script Section (Responsive height) */}
         {showScript && (
-          <div className="h-[40%] p-2">
+          <div className="flex-1 lg:flex-initial lg:h-80 p-2 min-h-[200px]">
             <Card className="h-full flex flex-col">
               <div className="p-3 border-b bg-gray-50/50 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3">
