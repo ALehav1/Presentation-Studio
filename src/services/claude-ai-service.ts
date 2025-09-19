@@ -13,7 +13,7 @@ export class ClaudeAIService {
   
   constructor() {
     this.apiKey = localStorage.getItem('anthropic_api_key') || '';
-    console.log('🤖 Claude AI Service initialized');
+    // console.log('🤖 Claude AI Service initialized'); // Commented out - using OpenAI now
   }
 
   /**
