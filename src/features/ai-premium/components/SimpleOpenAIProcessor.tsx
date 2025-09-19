@@ -182,21 +182,32 @@ Return ONLY JSON in this format:
 
   const handleProcess = async () => {
     console.log('🔘 Process button clicked! Connection status:', connectionStatus);
+    console.log('🔍 Early checks:', { 
+      connected: connectionStatus === 'connected',
+      slidesCount: slides.length, 
+      hasScript,
+      fullScript: currentPresentation?.fullScript?.length || 0
+    });
     
     if (connectionStatus !== 'connected') {
+      console.error('❌ Connection check failed');
       alert('Please test your OpenAI connection first');
       return;
     }
 
     if (!slides.length) {
+      console.error('❌ No slides found');
       alert('Please upload slides first');
       return;
     }
 
     if (!hasScript) {
+      console.error('❌ No script found');
       alert('Please add a script first');
       return;
     }
+
+    console.log('✅ All checks passed, starting processing...');
 
     setProcessing(true);
     setCurrentStep(0);
