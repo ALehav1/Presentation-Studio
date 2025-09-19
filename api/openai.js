@@ -23,12 +23,27 @@ export default async function handler(req) {
       verbosity 
     } = await req.json();
 
+    console.log('🔑 API Key received:', apiKey ? `${apiKey.substring(0, 8)}...` : 'MISSING');
+    console.log('📨 Request body:', { model, messages, max_tokens, temperature });
+
     if (!apiKey) {
+      console.error('❌ No API key provided');
       return new Response(JSON.stringify({ error: 'API key required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    const requestBody = {
+      model: model || 'gpt-4o-mini',
+      messages: messages || [{ role: 'user', content: 'Hello' }],
+      max_tokens: max_tokens || 100,
+      temperature,
+      ...(reasoning_effort && { reasoning_effort }),
+      ...(verbosity && { verbosity }),
+    };
+
+    console.log('🚀 Sending to OpenAI:', { model: requestBody.model, messageCount: requestBody.messages.length });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -36,14 +51,7 @@ export default async function handler(req) {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: model || 'gpt-4o-mini',
-        messages: messages || [{ role: 'user', content: 'Hello' }],
-        max_tokens: max_tokens || 100,
-        temperature,
-        ...(reasoning_effort && { reasoning_effort }),
-        ...(verbosity && { verbosity }),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
