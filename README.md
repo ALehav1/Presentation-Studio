@@ -1,8 +1,8 @@
 # PresentationStudio
 
-🚀 A production-ready presentation workflow application with **revolutionary script allocation**, streamlined UX, and unlimited slide storage. Built with React, TypeScript, and shadcn/ui for professional presenters and teams.
+🚀 A production-ready presentation workflow application with **AI-powered script matching**, revolutionary script allocation, and unlimited slide storage. Built with React, TypeScript, and shadcn/ui for professional presenters and teams.
 
-**🎯 Revolutionary workflow**: Upload PDF slides → Upload/paste script → **Auto-allocate intelligently** → **Edit individual slides** → Practice with AI guidance → Deliver seamlessly
+**🎯 Revolutionary AI-powered workflow**: Upload PDF slides → Upload/paste script → **GPT-5 intelligently matches content** → Review confidence scores → Practice with executive coaching → Deliver seamlessly
 
 ## ✨ Features
 
@@ -14,6 +14,17 @@
 - **Script Processing**: Automatic distribution of scripts across slides with smart parsing
 - **File Support**: PDF slides and TXT script files with comprehensive error handling
 - **Navigation**: Keyboard shortcuts, slide thumbnails, and smooth transitions
+
+### 🚀 NEW: AI-Powered Script Intelligence
+
+🤖 **GPT-5 Integration**: State-of-the-art language model with reasoning controls for maximum quality
+🎯 **Two-Pass Matching**: Micro-summaries → Global alignment for superior script-to-slide mapping
+📊 **Confidence Review**: Transparent scoring system shows mapping quality with detailed rationale
+🎭 **Executive Coaching**: Slide role awareness (opening, proof, contrast, takeaway, close) for professional guidance
+🔍 **Vision Analysis**: Automatic slide content extraction with OCR and visual element detection
+⚡ **Bulletproof JSON**: Responses API eliminates parsing failures that plagued Claude integration
+🎯 **Multiple Fallbacks**: Two-pass → Single-pass → Semantic splitting ensures reliability
+💰 **Cost Optimized**: ~$0.15-0.40 per presentation with hard token caps and smart batching
 
 ### 🚀 **NEW: Revolutionary Script Allocation System** 
 
@@ -112,6 +123,13 @@ The application will be available at `http://localhost:5173`
 }
 ```
 
+**AI & Language Processing:**
+```json
+{
+  "openai": "^4.69.1"           // OpenAI GPT-5 integration for script matching and coaching
+}
+```
+
 **PDF & File Processing:**
 ```json
 {
@@ -176,6 +194,10 @@ src/
 │   ├── slides/           # Slide viewing functionality
 │   │   └── components/   # Slide UI components
 │   │       └── SlideViewer.tsx
+│   ├── ai-premium/       # 🤖 AI-powered features  
+│   │   └── components/   # AI processing components
+│   │       ├── OpenAIProcessor.tsx        # GPT-5 integration with two-pass matching
+│   │       └── SlideAlignmentReview.tsx   # Confidence review UI component
 │   ├── script/           # 🚀 Revolutionary Script Management
 │   │   ├── components/   # Script UI components
 │   │   │   ├── ScriptEditor.tsx            # Individual slide editing
@@ -194,7 +216,8 @@ src/
 │           ├── PresenterGuidePane.tsx # AI guidance pane
 │           └── SlideThumbnailPane.tsx # Slide navigation pane
 ├── services/              # 🆕 Service layer
-│   └── imageStorage.ts   # IndexedDB image management with Dexie
+│   ├── imageStorage.ts          # IndexedDB image management with Dexie
+│   └── openai-service-production.ts  # 🤖 GPT-5 integration with two-pass matching
 ├── shared/               # Shared components and utilities
 ├── utils/                # Application-wide utilities
 │   └── pdf-setup.ts     # PDF.js worker configuration
