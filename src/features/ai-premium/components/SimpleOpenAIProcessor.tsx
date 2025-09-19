@@ -18,12 +18,12 @@ export const SimpleOpenAIProcessor = () => {
     setConnectionStatus('testing');
     
     try {
-      const response = await fetch('/api/openai-gpt', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
-          model: "gpt-5",
+          model: "gpt-4o-mini",
           max_tokens: 10,
           messages: [{ role: 'user', content: 'Test connection' }]
         })

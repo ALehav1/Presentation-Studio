@@ -37,7 +37,7 @@ export default async function handler(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'gpt-5',
+        model: model || 'gpt-4o-mini',
         messages: messages || [{ role: 'user', content: 'Hello' }],
         max_tokens: max_tokens || 100,
         temperature,
