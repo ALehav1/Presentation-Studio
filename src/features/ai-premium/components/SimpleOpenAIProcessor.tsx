@@ -201,6 +201,16 @@ Return ONLY JSON in this format:
     setProcessing(true);
     setCurrentStep(0);
     
+    console.log('🔍 PROCESSING DEBUG:');
+    console.log('- Slides count:', slides.length);
+    console.log('- Has script:', hasScript);
+    console.log('- Script length:', currentPresentation?.fullScript?.length || 0);
+    console.log('- Sample slide URLs:', slides.slice(0, 2).map((s, i) => ({ 
+      index: i, 
+      hasUrl: Boolean(s.imageUrl), 
+      urlStart: s.imageUrl?.substring(0, 20) 
+    })));
+    
     try {
       // STEP 1: Analyze all slides with vision
       setCurrentStep(1);
@@ -211,11 +221,15 @@ Return ONLY JSON in this format:
       for (let i = 0; i < slides.length; i++) {
         setProgress(`🔍 Analyzing slide ${i + 1} of ${slides.length}...`);
         
+        console.log(`🔍 Analyzing slide ${i + 1}, imageUrl exists:`, Boolean(slides[i].imageUrl));
+        
         const analysis = await analyzeSlideWithVision(slides[i].imageUrl, i + 1);
+        
+        console.log(`🔍 Analysis result for slide ${i + 1}:`, { success: analysis.success, error: analysis.error });
         
         if (analysis.success) {
           slideAnalyses.push(analysis.data);
-          console.log(`✅ Slide ${i + 1} analyzed:`, analysis.data.mainTopic);
+          console.log(`✅ Slide ${i + 1} analyzed:`, analysis.data?.mainTopic);
         } else {
           console.error(`❌ Failed to analyze slide ${i + 1}:`, analysis.error);
           // Add placeholder to continue
