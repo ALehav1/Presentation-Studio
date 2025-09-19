@@ -3,26 +3,11 @@ import { persist } from 'zustand/middleware';
 import { ContentGuide } from '../../features/practice/utils/script-processor';
 import { ScriptSplitter } from '../../features/script/utils/scriptSplitter';
 import { saveSlideImage, loadPresentationImages, deletePresentationImages } from '../../services/imageStorage';
-
-interface Slide {
-  id: string;
-  imageUrl: string;
-  script: string;
-  notes: string;
-  keyPoints: string[];
-  guide?: ContentGuide;
-}
+import type { Slide, Presentation } from '../types';
 
 interface PresentationState {
   // Presentation data
-  currentPresentation: {
-    id: string;
-    title: string;
-    slides: Slide[];
-    fullScript?: string;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
+  currentPresentation: Presentation | null;
   
   // Upload state
   uploadStatus: 'idle' | 'uploading' | 'converting' | 'complete' | 'error';
@@ -75,6 +60,7 @@ export const usePresentationStore = create<PresentationState>()(
         
         const slides: Slide[] = slideImages.map((imageUrl, index) => ({
           id: `slide-${timestamp}-${index}`,
+          number: index + 1,
           imageUrl,
           script: '',
           notes: '',

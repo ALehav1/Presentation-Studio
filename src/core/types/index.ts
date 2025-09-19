@@ -1,3 +1,5 @@
+import type { ContentGuide } from '../../features/practice/utils/script-processor';
+
 export interface Presentation {
   id: string;
   title: string;
@@ -10,13 +12,12 @@ export interface Presentation {
 export interface Slide {
   id: string;
   number: number;
-  imageUrl?: string;
+  imageUrl: string;
   pdfPage?: number;
   script: string;
-  keyPoints: string[];
-  transition: string;
-  duration: number;
   notes: string;
+  keyPoints: string[];
+  guide?: ContentGuide;
 }
 
 export interface Session {
