@@ -3,11 +3,141 @@ import { useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Brain, Key, CheckCircle } from 'lucide-react';
+import { Brain, Key, CheckCircle, Loader2 } from 'lucide-react';
+import { usePresentationStore } from '../../../core/store/presentation';
 
 export const SimpleOpenAIProcessor = () => {
+  const { currentPresentation, updateSlideScript } = usePresentationStore();
   const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
+  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [totalSteps] = useState(3);
+
+  const slides = currentPresentation?.slides || [];
+  const hasScript = Boolean(currentPresentation?.fullScript);
+
+  // Helper function to analyze slide with OpenAI Vision
+  const analyzeSlideWithVision = async (imageUrl: string, slideNumber: number) => {
+    try {
+      const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          model: 'gpt-4o-mini',
+          max_tokens: 800,
+          temperature: 0.1,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this presentation slide and extract:
+1. Main topic/title
+2. Key points (bullet points, main ideas)
+3. Visual elements (charts, images, diagrams)
+
+Return ONLY JSON in this format:
+{
+  "slideNumber": ${slideNumber},
+  "mainTopic": "string",
+  "keyPoints": ["string", "string"],
+  "visualElements": ["string", "string"]
+}`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageUrl,
+                  detail: 'high'
+                }
+              }
+            ]
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '{}';
+        
+        try {
+          const parsed = JSON.parse(content);
+          return { success: true, data: parsed };
+        } catch {
+          return { success: false, error: 'Failed to parse OpenAI response' };
+        }
+      } else {
+        return { success: false, error: `API error: ${response.status}` };
+      }
+    } catch (error) {
+      return { success: false, error: `Network error: ${error}` };
+    }
+  };
+
+  // Helper function to match script to slides
+  const matchScriptToSlides = async (slideAnalyses: any[], fullScript: string) => {
+    try {
+      const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          model: 'gpt-4o-mini',
+          max_tokens: 2000,
+          temperature: 0.1,
+          reasoning_effort: 'high',
+          verbosity: 'high',
+          messages: [{
+            role: 'user',
+            content: `You are an expert presentation coach. Match this script to the slides by:
+
+1. Analyzing slide topics and content
+2. Segmenting the script into coherent sections
+3. Mapping each section to the most appropriate slide
+4. Ensuring natural flow and logical progression
+
+SLIDES:
+${JSON.stringify(slideAnalyses, null, 2)}
+
+FULL SCRIPT:
+${fullScript}
+
+Return ONLY JSON in this format:
+{
+  "success": true,
+  "matches": [
+    {
+      "slideNumber": 1,
+      "scriptSection": "exact text from script for this slide",
+      "confidence": 85,
+      "reasoning": "why this section matches this slide"
+    }
+  ]
+}`
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '{}';
+        
+        try {
+          const parsed = JSON.parse(content);
+          return parsed;
+        } catch {
+          return { success: false, error: 'Failed to parse script matching response' };
+        }
+      } else {
+        return { success: false, error: `API error: ${response.status}` };
+      }
+    } catch (error) {
+      return { success: false, error: `Network error: ${error}` };
+    }
+  };
 
   const testConnection = async () => {
     console.log('🔑 Frontend apiKey value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'EMPTY');
@@ -50,15 +180,87 @@ export const SimpleOpenAIProcessor = () => {
     }
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     console.log('🔘 Process button clicked! Connection status:', connectionStatus);
     
     if (connectionStatus !== 'connected') {
       alert('Please test your OpenAI connection first');
       return;
     }
+
+    if (!slides.length) {
+      alert('Please upload slides first');
+      return;
+    }
+
+    if (!hasScript) {
+      alert('Please add a script first');
+      return;
+    }
+
+    setProcessing(true);
+    setCurrentStep(0);
     
-    alert('🚀 OpenAI processing will be implemented next! Connection is working.');
+    try {
+      // STEP 1: Analyze all slides with vision
+      setCurrentStep(1);
+      setProgress('🔍 Analyzing slides with OpenAI Vision...');
+      
+      const slideAnalyses = [];
+      
+      for (let i = 0; i < slides.length; i++) {
+        setProgress(`🔍 Analyzing slide ${i + 1} of ${slides.length}...`);
+        
+        const analysis = await analyzeSlideWithVision(slides[i].imageUrl, i + 1);
+        
+        if (analysis.success) {
+          slideAnalyses.push(analysis.data);
+          console.log(`✅ Slide ${i + 1} analyzed:`, analysis.data.mainTopic);
+        } else {
+          console.error(`❌ Failed to analyze slide ${i + 1}:`, analysis.error);
+          // Add placeholder to continue
+          slideAnalyses.push({
+            slideNumber: i + 1,
+            mainTopic: `Slide ${i + 1}`,
+            keyPoints: ['Unable to analyze content'],
+            visualElements: []
+          });
+        }
+      }
+
+      // STEP 2: Match script to slides
+      setCurrentStep(2);
+      setProgress('🎯 Matching script to slides with AI...');
+      
+      const scriptMatches = await matchScriptToSlides(slideAnalyses, currentPresentation!.fullScript);
+      
+      if (scriptMatches.success) {
+        console.log('✅ Script matching completed:', scriptMatches.matches?.length, 'sections');
+        
+        // STEP 3: Update slide scripts
+        setCurrentStep(3);
+        setProgress('💾 Saving matched script sections...');
+        
+        scriptMatches.matches?.forEach((match, index) => {
+          if (slides[index]) {
+            updateSlideScript(slides[index].id, match.scriptSection);
+          }
+        });
+      } else {
+        console.error('❌ Script matching failed:', scriptMatches.error);
+      }
+
+      setProgress('✅ Processing complete!');
+      alert('🎉 OpenAI processing complete! Check your slides for the matched script sections.');
+      
+    } catch (error) {
+      console.error('❌ Processing error:', error);
+      setProgress('❌ Processing failed');
+      alert('❌ Processing failed. Check console for details.');
+    } finally {
+      setProcessing(false);
+      setCurrentStep(0);
+    }
   };
 
   return (
@@ -158,16 +360,29 @@ export const SimpleOpenAIProcessor = () => {
         {connectionStatus === 'connected' ? ' ✅ Button should work' : ' ❌ Button disabled'}
       </div>
 
+      {/* Progress Display */}
+      {processing && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">
+              Step {currentStep} of {totalSteps}: Processing...
+            </span>
+          </div>
+          <div className="text-sm text-blue-700">{progress}</div>
+        </div>
+      )}
+
       {/* Process Button */}
       <Button
         onClick={handleProcess}
-        disabled={connectionStatus !== 'connected'}
+        disabled={connectionStatus !== 'connected' || processing}
         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
         size="lg"
       >
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5" />
-          <span>🚀 Process with OpenAI GPT-5</span>
+          {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Brain className="h-5 w-5" />}
+          <span>{processing ? 'Processing...' : '🚀 Process with OpenAI'}</span>
         </div>
       </Button>
     </Card>

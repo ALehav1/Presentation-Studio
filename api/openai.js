@@ -45,7 +45,16 @@ export default async function handler(req) {
 
     console.log('🚀 Sending to OpenAI:', { model: requestBody.model, messageCount: requestBody.messages.length });
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Choose endpoint based on whether we have images
+    const hasImages = requestBody.messages?.some(msg => 
+      Array.isArray(msg.content) && msg.content.some(c => c.type === 'image_url')
+    );
+    
+    const endpoint = hasImages ? 
+      'https://api.openai.com/v1/chat/completions' : 
+      'https://api.openai.com/v1/chat/completions';
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
