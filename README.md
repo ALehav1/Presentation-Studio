@@ -1,8 +1,33 @@
 # PresentationStudio
+🚀 **AI-Powered Presentation Coaching** with GPT-5 Vision Intelligence, semantic script matching, and unlimited slide storage. Built with React, TypeScript, and shadcn/ui for professional presenters who demand precision.
 
-🚀 A production-ready presentation workflow application with **revolutionary script allocation**, streamlined UX, and unlimited slide storage. Built with React, TypeScript, and shadcn/ui for professional presenters and teams.
+🎯 **Revolutionary AI Workflow:** Upload PDF slides → Upload/paste script → **AI reads slide content** → **Intelligent semantic matching** → Practice with **real presenter guidance** → Deliver confidently
 
-**🎯 Revolutionary workflow**: Upload PDF slides → Upload/paste script → **Auto-allocate intelligently** → **Edit individual slides** → Practice with AI guidance → Deliver seamlessly
+## 🧠 **AI Vision Intelligence - BREAKTHROUGH FEATURE**
+
+**REVOLUTIONARY:** Unlike other tools that blindly split text, PresentationStudio **actually reads your slides** using GPT-5 Vision API:
+
+- **🔍 OCR + Content Understanding**: Extracts text, topics, charts, and visual elements from each slide
+- **🎯 Semantic Script Matching**: Matches script sections to slide content intelligently (not word count)
+- **📊 Confidence Scoring**: Shows alignment confidence (0-100%) with reasoning for each match
+- **💡 Real Presenter Guidance**: Generates actual coaching based on slide content + script alignment
+- **💰 Cost**: ~$0.10-0.30 per presentation (you provide your own OpenAI API key)
+
+**Example Results:**
+```
+✅ Slide 1 analyzed: "Introduction & Welcome"
+✅ Script matching completed: 7 sections  
+✅ Average confidence: 87%
+
+Slide 3: Financial Results → Script: "Q4 revenue data shows 40% growth..."
+Confidence: 92% | Reasoning: "Strong semantic alignment between financial chart and revenue discussion"
+```
+
+**How It Works:**
+1. **Vision Analysis**: GPT-5 reads each slide image and extracts structured data
+2. **Semantic Summaries**: Creates compact summaries optimized for script matching
+3. **Intelligent Matching**: Uses GPT-5 reasoning to align script sections with slide topics
+4. **Quality Assurance**: Provides confidence scores and explanations for each match
 
 ## ✨ Features
 
@@ -118,6 +143,13 @@ The application will be available at `http://localhost:5173`
   "pdfjs-dist": "^3.11.174",    // PDF processing and conversion
   "react-dropzone": "^14.3.8",  // Drag-and-drop file uploads
   "file-saver": "^2.0.5"        // File download utilities
+}
+```
+
+**AI & Language Processing:**
+```json
+{
+  "openai": "^4.77.3"           // Official OpenAI SDK for GPT-5 Vision API
 }
 ```
 
@@ -240,16 +272,18 @@ src/
 
 ## 🎯 Usage
 
-### 🚀 **NEW: Revolutionary Script Allocation Workflow**
+### 🧠 **NEW: AI-Powered Workflow** (GPT-5 Vision Intelligence)
 
-**📁 Setup Phase** ✅ **Intelligent & Automatic:**
+**📁 Setup Phase** ✅ **AI Vision Analysis:**
 - Upload PDF slides via elegant drag-and-drop interface with shadcn/ui components  
-- Upload/paste script → **Auto-allocates using multi-pattern intelligence**
-- **ScriptAllocator engine** detects markdown headers, ALL CAPS, numbered sections, etc.
-- **Smart distribution** handles more/fewer sections than slides perfectly
-- **Toast notification**: "Setup Complete! Ready for Practice Mode!"
-- **Progress indicators** show completion status with green checkmarks
+- Upload/paste script → **Enter your OpenAI API key for processing**
+- **GPT-5 Vision** reads each slide: text, charts, diagrams, topics
+- **Semantic script matching** aligns content intelligently (not word count!)
+- **Confidence scoring** shows match quality with detailed reasoning
+- **Toast notification**: "🎉 OpenAI processing complete! Average confidence: 87%"
 - Images automatically saved to IndexedDB for unlimited storage
+
+**💰 Cost**: ~$0.10-0.30 per presentation using your own OpenAI API key
 
 **🎯 Practice Phase** ✅ **Direct Manipulation Revolution:**
 - **No confusing dialogs** - see all slides and scripts in one view
@@ -260,18 +294,17 @@ src/
 - **Progressive refinement** - fix slides one by one until perfect
 - **Reset options** - individual slide reset or "Reset All to Auto"
 
-**🎤 Practice Mode** ✅ **Complete & Premium with Advanced Editing:**
-- **Superior Three-Section Layout**: Slide + Guide (top row, equal sizes) | Script (bottom row, full width)
-- **Perfect Visual Balance**: Slide and Presenter Guide get equal prominence and visual weight
+**🎤 Practice Mode** ✅ **AI-Enhanced Presenter Coaching:**
+- **Superior Three-Section Layout**: Slide + AI Guide (top row, equal sizes) | Script (bottom row, full width)
+- **Real AI Coaching**: Generated from actual slide content + script analysis (not placeholder text!)
 - **Inline Script Editing**: Click-to-edit scripts with auto-save (1-second debounce)
-- **Presenter Guide Editing**: Customize transitions and key messages with form-based interface
-- **AI-Powered Guidance**: Automatic extraction of key points, transitions, and timing cues
-- **Smart Script Processing**: Enhanced parsing with slide-count awareness and intelligent distribution
-- **Manual Script Mapping**: Drag-and-drop modal for precise script-to-slide mapping
-- **Auto-Save Functionality**: Debounced saves prevent data loss during editing
+- **Confidence Indicators**: See match quality scores for each slide-script pairing
+- **Smart Recommendations**: Transition coaching, timing, and emphasis points based on content
 - **Professional UI**: Glass morphism cards with gradient designs and smooth animations
 - **Hide/Show Controls**: Toggle section visibility for focused practice
 - **Mobile Responsive**: Beautiful layout on all devices (375px minimum)
+
+**✨ Coming Soon**: Advanced coaching features with slide role detection, presentation flow analysis, and context-aware guidance
 
 **🎙️ Delivery Phase** 📋 **Planned Next:**
 - Clean presenter interface optimized for actual presentations
