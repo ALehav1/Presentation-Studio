@@ -232,50 +232,44 @@ Format: ["script for slide 1", "script for slide 2", ...]`;
       console.log('📄 Claude response length:', content.length);
       console.log('🔍 Response preview:', content.substring(0, 300));
 
-      // ROBUST PARSING that handles brackets in strings
-      let scriptSections: string[] = [];
+      // USE THE ROBUST EXTRACTOR WE JUST CREATED
+      const scriptSections = this.extractClaudeJSON(content);
       
-      const start = content.indexOf('[');
-      const end = content.lastIndexOf(']');
-      
-      if (start !== -1 && end !== -1) {
-        let jsonStr = content.substring(start, end + 1);
+      if (!Array.isArray(scriptSections)) {
+        console.log('⚠️ Claude returned non-array, using semantic fallback');
+        const fallbackSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
         
-        // Fix the bracket issue: "[No content]" → "No content" 
-        jsonStr = jsonStr
-          .replace(/"\[([^\]]+)\]"/g, '"$1"')  // Remove brackets inside quoted strings
-          .replace(/\[([^"[\]]+)\]/g, '""');   // Replace unquoted bracket content with empty strings
-        
-        console.log('🔧 Cleaned JSON:', jsonStr.substring(0, 200));
-        
-        try {
-          scriptSections = JSON.parse(jsonStr);
-          console.log('✅ Successfully parsed', scriptSections.length, 'AI-matched sections');
-        } catch {
-          console.log('⚠️ JSON parse failed, using manual extraction');
-          // Extract quoted strings manually
-          const matches = jsonStr.matchAll(/"([^"]+)"/g);
-          scriptSections = Array.from(matches, match => match[1]);
-        }
+        return {
+          success: true,
+          matches: fallbackSections.map((section: string, i: number) => ({
+            slideNumber: i + 1,
+            scriptSection: section,
+            confidence: 70,
+            reasoning: 'Semantic fallback - Claude parsing failed',
+            keyAlignment: []
+          }))
+        };
       }
 
-      // If AI parsing failed, fall back to semantic split (still better than random)
-      if (scriptSections.length === 0) {
-        console.log('📊 AI parsing failed, using semantic fallback');
-        scriptSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
+      let finalSections = scriptSections;
+
+      // If we still don't have sections, use fallback
+      if (finalSections.length === 0) {
+        console.log('📊 Using semantic fallback');
+        finalSections = this.fallbackSemanticSplit(fullScript, slideAnalyses.length);
       }
 
       // Ensure we have exactly the right count
-      while (scriptSections.length < slideAnalyses.length) {
-        scriptSections.push('');
+      while (finalSections.length < slideAnalyses.length) {
+        finalSections.push('');
       }
-      while (scriptSections.length > slideAnalyses.length) {
-        const last = scriptSections.pop() || '';
-        const secondLast = scriptSections.pop() || '';
-        scriptSections.push(secondLast + ' ' + last);
+      while (finalSections.length > slideAnalyses.length) {
+        const last = finalSections.pop() || '';
+        const secondLast = finalSections.pop() || '';
+        finalSections.push(secondLast + ' ' + last);
       }
 
-      const matches = scriptSections.map((section: string, i: number) => ({
+      const matches = finalSections.map((section: string, i: number) => ({
         slideNumber: i + 1,
         scriptSection: section.trim() || `Script section ${i + 1}`,
         confidence: 95,
