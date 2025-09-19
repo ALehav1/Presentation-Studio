@@ -78,7 +78,7 @@ Return ONLY JSON in this format:
   };
 
   // Helper function to match script to slides
-  const matchScriptToSlides = async (slideAnalyses: any[], fullScript: string) => {
+  const matchScriptToSlides = async (slideAnalyses: unknown[], fullScript: string) => {
     try {
       const response = await fetch('/api/openai', {
         method: 'POST',
@@ -257,7 +257,7 @@ Return ONLY JSON in this format:
       setCurrentStep(2);
       setProgress('🎯 Matching script to slides with AI...');
       
-      const scriptMatches = await matchScriptToSlides(slideAnalyses, currentPresentation!.fullScript);
+      const scriptMatches = await matchScriptToSlides(slideAnalyses, currentPresentation?.fullScript || '');
       
       if (scriptMatches.success) {
         console.log('✅ Script matching completed:', scriptMatches.matches?.length, 'sections');
@@ -266,7 +266,7 @@ Return ONLY JSON in this format:
         setCurrentStep(3);
         setProgress('💾 Saving matched script sections...');
         
-        scriptMatches.matches?.forEach((match, index) => {
+        scriptMatches.matches?.forEach((match: any, index: number) => {
           if (slides[index]) {
             updateSlideScript(slides[index].id, match.scriptSection);
           }
