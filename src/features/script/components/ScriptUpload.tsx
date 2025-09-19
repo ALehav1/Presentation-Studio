@@ -98,18 +98,19 @@ export function ScriptUpload({ onScriptUploaded, onNavigateToPractice }: ScriptU
   // Track if we've already processed this script to prevent double processing
   const [processedScript, setProcessedScript] = useState('');
 
-  // Check for globally stored script on mount
+  // Check for temp stored script on mount
   useEffect(() => {
-    const globalScript = (window as any).uploadedScript;
-    if (globalScript && !script && globalScript !== processedScript) {
-      console.log('📝 Loading script from global storage');
-      setScript(globalScript);
-      delete (window as any).uploadedScript;
+    const { getTempUploadedScript, setTempUploadedScript } = usePresentationStore.getState();
+    const tempScript = getTempUploadedScript();
+    if (tempScript && !script && tempScript !== processedScript) {
+      console.log('📝 Loading script from store');
+      setScript(tempScript);
+      setTempUploadedScript(null); // Clear temp storage after use
       
       // Trigger auto-parse after loading
       setTimeout(() => {
-        handleAutoParse(globalScript);
-        setProcessedScript(globalScript);
+        handleAutoParse(tempScript);
+        setProcessedScript(tempScript);
       }, 500);
     }
   }, []); // Remove dependencies to prevent infinite loop

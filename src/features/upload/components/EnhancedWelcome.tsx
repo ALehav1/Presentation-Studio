@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { FileText, Upload, ArrowRight } from 'lucide-react';
 import { UploadZone } from './UploadZone';
 import { ScriptInput } from './ScriptInput';
+import { usePresentationStore } from '../../../core/store/presentation';
+import { FileText, Upload, ArrowRight } from 'lucide-react';
 
 interface EnhancedWelcomeProps {
   onScriptProvided?: (script: string) => void;
@@ -11,9 +12,10 @@ export function EnhancedWelcome({ onScriptProvided }: EnhancedWelcomeProps) {
   const [selectedFlow, setSelectedFlow] = useState<'slides' | 'script' | null>(null);
 
   const handleScriptProvided = (script: string) => {
-    // Store script globally so ScriptUpload component can access it
-    (window as any).uploadedScript = script;
-    console.log('Script provided and stored globally:', script.substring(0, 100) + '...');
+    // Store script in Zustand store so ScriptUpload component can access it
+    const { setTempUploadedScript } = usePresentationStore.getState();
+    setTempUploadedScript(script);
+    console.log('Script provided and stored in store:', script.substring(0, 100) + '...');
     
     // Reset to show upload after script is provided
     setSelectedFlow('slides');

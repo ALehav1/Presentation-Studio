@@ -35,6 +35,9 @@ interface PresentationState {
   // Sync tracking
   lastEditLocation: 'setup' | 'practice' | null;
   
+  // Temporary script storage for cross-component script sharing
+  tempUploadedScript: string | null;
+  
   // Actions
   createPresentation: (title: string, slideImages: string[]) => Promise<void>;
   updateSlideScript: (slideId: string, script: string, source?: 'setup' | 'practice') => void;
@@ -49,6 +52,8 @@ interface PresentationState {
   setUploadError: (error: string | null) => void;
   clearPresentation: () => Promise<void>;
   loadImagesFromIndexedDB: () => Promise<void>;
+  setTempUploadedScript: (script: string | null) => void;
+  getTempUploadedScript: () => string | null;
 }
 
 export const usePresentationStore = create<PresentationState>()(
@@ -61,6 +66,7 @@ export const usePresentationStore = create<PresentationState>()(
       uploadError: null,
       currentSlideIndex: 0,
       lastEditLocation: null,
+      tempUploadedScript: null,
       
       // Create new presentation from uploaded PDF
       createPresentation: async (title, slideImages) => {
@@ -267,7 +273,11 @@ export const usePresentationStore = create<PresentationState>()(
         } catch (error) {
           console.error('❌ Failed to load images from IndexedDB:', error);
         }
-      }
+      },
+      
+      // Temporary script management methods
+      setTempUploadedScript: (script: string | null) => set({ tempUploadedScript: script }),
+      getTempUploadedScript: () => get().tempUploadedScript
     }),
     {
       name: 'presentation-storage', // localStorage key

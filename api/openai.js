@@ -45,14 +45,8 @@ export default async function handler(req) {
 
     console.log('🚀 Sending to OpenAI:', { model: requestBody.model, messageCount: requestBody.messages.length });
 
-    // Choose endpoint based on whether we have images
-    const hasImages = requestBody.messages?.some(msg => 
-      Array.isArray(msg.content) && msg.content.some(c => c.type === 'image_url')
-    );
-    
-    const endpoint = hasImages ? 
-      'https://api.openai.com/v1/chat/completions' : 
-      'https://api.openai.com/v1/chat/completions';
+    // Single endpoint handles both text and vision requests
+    const endpoint = 'https://api.openai.com/v1/chat/completions';
 
     const response = await fetch(endpoint, {
       method: 'POST',

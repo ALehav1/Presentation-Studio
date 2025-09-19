@@ -66,9 +66,10 @@ export default function App() {
         {!currentPresentation ? (
           <EnhancedWelcome 
             onScriptProvided={(script) => {
-              // Store script globally for Setup mode access
-              (window as any).uploadedScript = script;
-              console.log('Script provided and stored globally:', script.substring(0, 50) + '...');
+              // Store script in Zustand store for Setup mode access
+              const { setTempUploadedScript } = usePresentationStore.getState();
+              setTempUploadedScript(script);
+              console.log('Script provided and stored in store:', script.substring(0, 50) + '...');
             }}
           />
         ) : (
