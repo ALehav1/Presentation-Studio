@@ -3,6 +3,11 @@
  * from slide scripts for Practice Mode
  */
 
+import { validateScriptLength, validateSlideCount, validateSectionCount } from '../../../shared/constants/limits';
+import { createDebugger } from '../../../shared/utils/debug';
+
+const debug = createDebugger('ScriptProcessor');
+
 export interface ProcessedScript {
   keyPoints: string[];
   transitionPhrases: string[];
@@ -143,46 +148,18 @@ function extractTimingCues(script: string): string[] {
 }
 
 /**
- * Create highlighted version of script with bold keywords
- */
-function createHighlightedScript(script: string): string {
-  if (!script.trim()) return script;
-  
-  let highlighted = script;
-  
-  // Bold importance keywords
-  IMPORTANCE_KEYWORDS.forEach(keyword => {
-    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-    highlighted = highlighted.replace(regex, `**$&**`);
-  });
-  
-  // Bold transition phrases
-  TRANSITION_PHRASES.forEach(phrase => {
-    const regex = new RegExp(phrase.replace(/'/g, "'"), 'gi');
-    highlighted = highlighted.replace(regex, `**$&**`);
-  });
-  
-  return highlighted;
-}
-
-/**
- * Count words in a script
- */
-function countWords(script: string): number {
-  if (!script.trim()) return 0;
-  return script.trim().split(/\s+/).length;
-}
-
-/**
  * Main function to process a script and extract all guidance information
  */
 export function processScript(script: string): ProcessedScript {
+  // Validate script size before processing
+  validateScriptLength(script);
+  
   return {
     keyPoints: extractKeyPoints(script),
     transitionPhrases: extractTransitionPhrases(script),
     timingCues: extractTimingCues(script),
-    highlightedScript: createHighlightedScript(script),
-    wordCount: countWords(script)
+    highlightedScript: script, // Simplified - just return original script
+    wordCount: script.trim().split(/\s+/).length
   };
 }
 
@@ -212,7 +189,13 @@ export function estimateSpeakingTime(wordCount: number): string {
 export function parseFullScript(fullScript: string, maxSlides?: number): ParsedSlideScript[] {
   if (!fullScript.trim()) return [];
   
-  console.log('🎯 Smart parsing for', maxSlides, 'slides');
+  // Validate input sizes
+  validateScriptLength(fullScript);
+  if (maxSlides) {
+    validateSlideCount(maxSlides);
+  }
+  
+  debug.log('🎯 Smart parsing for', maxSlides, 'slides');
   
   let sections: string[] = [];
   
@@ -221,7 +204,7 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
   const slideMarkers = [...fullScript.matchAll(slideMarkerRegex)];
   
   if (slideMarkers.length > 0) {
-    console.log('✅ Using Slide N markers');
+    debug.log('✅ Using Slide N markers');
     const splitByMarkers = fullScript.split(slideMarkerRegex);
     for (let i = 1; i < splitByMarkers.length; i++) {
       const content = splitByMarkers[i].trim();
@@ -231,13 +214,13 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
   
   // Strategy 2: Section headers
   else if (detectSectionHeaders(fullScript)) {
-    console.log('✅ Using section headers');
+    debug.log('✅ Using section headers');
     sections = extractBySectionHeaders(fullScript);
   }
   
   // Strategy 3: Smart paragraph grouping
   else if (maxSlides) {
-    console.log('✅ Using intelligent paragraph grouping');
+    debug.log('✅ Using intelligent paragraph grouping');
     sections = intelligentParagraphSplit(fullScript, maxSlides);
   }
   
@@ -254,6 +237,7 @@ export function parseFullScript(fullScript: string, maxSlides?: number): ParsedS
   
   // Handle section/slide count mismatch
   if (maxSlides && sections.length !== maxSlides) {
+    validateSectionCount(sections.length);
     sections = rebalanceSections(sections, maxSlides);
   }
   
@@ -313,36 +297,68 @@ function intelligentParagraphSplit(text: string, targetSlides: number): string[]
   return sections;
 }
 
-function rebalanceSections(sections: string[], targetSlides: number): string[] {
+function rebalanceSections(sections: string[], targetSlides: number, depth = 0): string[] {
+  const MAX_DEPTH = 10;
+  const MIN_SECTION_LENGTH = 50; // Don't split sections smaller than this
+  
+  // Safety checks
+  if (depth >= MAX_DEPTH) {
+    debug.warn(`Cannot rebalance ${sections.length} sections into ${targetSlides} slides after ${MAX_DEPTH} attempts. Returning current sections.`);
+    return sections;
+  }
+  
   if (sections.length === targetSlides) return sections;
   
   if (sections.length < targetSlides) {
-    // Find longest section and split it
+    // Find longest section and split it, but only if it's big enough
     const longest = sections.reduce((max, s, i) => 
       s.length > sections[max].length ? i : max, 0);
     
     const toSplit = sections[longest];
+    
+    // Don't split if section is too small
+    if (toSplit.length < MIN_SECTION_LENGTH) {
+      debug.warn(`Cannot split further - smallest section is ${toSplit.length} chars. Returning ${sections.length} sections for ${targetSlides} slides.`);
+      return sections;
+    }
+    
     const midpoint = Math.floor(toSplit.length / 2);
-    const splitPoint = toSplit.indexOf('.', midpoint) + 1 || midpoint;
+    const splitPoint = toSplit.indexOf('.', midpoint) + 1 || 
+                      toSplit.indexOf(' ', midpoint) + 1 || 
+                      midpoint;
     
-    sections[longest] = toSplit.substring(0, splitPoint).trim();
-    sections.splice(longest + 1, 0, toSplit.substring(splitPoint).trim());
+    const firstPart = toSplit.substring(0, splitPoint).trim();
+    const secondPart = toSplit.substring(splitPoint).trim();
     
-    return sections.length < targetSlides 
-      ? rebalanceSections(sections, targetSlides) 
-      : sections;
+    // Only proceed if both parts have content
+    if (firstPart && secondPart) {
+      sections[longest] = firstPart;
+      sections.splice(longest + 1, 0, secondPart);
+      
+      return sections.length < targetSlides 
+        ? rebalanceSections(sections, targetSlides, depth + 1) 
+        : sections;
+    } else {
+      debug.warn(`Cannot split section meaningfully. Returning ${sections.length} sections for ${targetSlides} slides.`);
+      return sections;
+    }
   }
   
   // Too many sections - merge shortest adjacent pairs
+  if (sections.length <= 1) {
+    debug.warn(`Cannot merge further - only ${sections.length} section(s) left.`);
+    return sections;
+  }
+  
   const shortest = sections.reduce((min, s, i) => 
     i > 0 && (s.length + sections[i-1].length) < 
-    (sections[min].length + sections[min-1]?.length || Infinity) ? i : min, 1);
+    (sections[min].length + (sections[min-1]?.length || Infinity)) ? i : min, 1);
   
   sections[shortest - 1] += '\n\n' + sections[shortest];
   sections.splice(shortest, 1);
   
   return sections.length > targetSlides 
-    ? rebalanceSections(sections, targetSlides) 
+    ? rebalanceSections(sections, targetSlides, depth + 1) 
     : sections;
 }
 
@@ -376,12 +392,12 @@ export function applyParsedScriptsToSlides(
 ): { slideId: string; script: string }[] {
   const updates: { slideId: string; script: string }[] = [];
   
-  console.log('📝 APPLYING SCRIPTS - Input data:', {
+  debug.log('📝 APPLYING SCRIPTS - Input data:', {
     parsedScripts: parsedScripts.length,
     existingSlides: existingSlides.length,
     parsedPreview: parsedScripts.map(p => ({ 
       slideNumber: p.slideNumber, 
-      scriptPreview: p.script.substring(0, 50) + '...' 
+      preview: p.script.substring(0, 50) + '...' 
     })),
     slideIds: existingSlides.map(s => s.id)
   });
@@ -395,17 +411,17 @@ export function applyParsedScriptsToSlides(
       };
       updates.push(update);
       
-      console.log(`📝 Mapping script for slide ${index + 1}:`, {
+      debug.log(`📝 Mapping script for slide ${index + 1}:`, {
         slideId: slide.id,
         scriptLength: parsed.script.length,
         scriptPreview: parsed.script.substring(0, 100) + '...'
       });
     } else {
-      console.log(`⚠️ Skipping section ${index + 1} - no matching slide`);
+      debug.warn(`Skipping section ${index + 1} - no matching slide`);
     }
   });
   
-  console.log('✅ Script mapping complete:', {
+  debug.log('✅ Script mapping complete:', {
     totalUpdates: updates.length,
     updateDetails: updates.map(u => ({
       slideId: u.slideId,

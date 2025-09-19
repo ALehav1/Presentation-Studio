@@ -115,6 +115,7 @@ export class ScriptAllocator {
   
   /**
    * Extract script content that hasn't been manually allocated yet
+   * Uses position-based extraction to avoid removing duplicate text
    */
   private static extractRemainingScript(
     fullScript: string,
@@ -122,19 +123,76 @@ export class ScriptAllocator {
   ): string {
     if (!allocatedScript) return fullScript;
     
-    // This is a simple approach - you might want more sophisticated matching
-    // For now, we'll just remove allocated content from the full script
-    let remaining = fullScript;
-    const allocatedParts = allocatedScript.split('\n').filter(line => line.trim());
+    // Split allocated script into meaningful chunks
+    const allocatedParts = allocatedScript
+      .split(/\n\s*\n/)  // Split by paragraphs
+      .map(part => part.trim())
+      .filter(part => part.length > 0);
     
+    if (allocatedParts.length === 0) return fullScript;
+    
+    let remaining = fullScript;
+    const usedPositions: Array<{start: number, end: number}> = [];
+    
+    // Find actual positions of allocated text in the full script
     for (const part of allocatedParts) {
-      remaining = remaining.replace(part, '');
+      // Look for this part in the remaining script
+      let searchText = remaining;
+      let searchOffset = 0;
+      
+      // Skip already-used positions
+      for (const used of usedPositions.sort((a, b) => a.start - b.start)) {
+        if (searchOffset < used.end) {
+          searchText = remaining.slice(0, used.start) + remaining.slice(used.end);
+          searchOffset = used.end;
+        }
+      }
+      
+      const partIndex = searchText.indexOf(part);
+      if (partIndex !== -1) {
+        const realIndex = this.getRealIndex(remaining, searchText, partIndex, usedPositions);
+        usedPositions.push({
+          start: realIndex,
+          end: realIndex + part.length
+        });
+      }
     }
     
-    // Clean up multiple newlines
-    remaining = remaining.replace(/\n{3,}/g, '\n\n');
+    // Remove text from back to front to maintain positions
+    usedPositions.sort((a, b) => b.start - a.start);
     
-    return remaining.trim();
+    for (const pos of usedPositions) {
+      remaining = remaining.slice(0, pos.start) + remaining.slice(pos.end);
+    }
+    
+    // Clean up multiple newlines and extra whitespace
+    remaining = remaining
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .trim();
+    
+    return remaining;
+  }
+  
+  /**
+   * Helper to calculate real index accounting for already removed positions
+   */
+  private static getRealIndex(
+    _fullText: string, 
+    _searchText: string, 
+    foundIndex: number, 
+    usedPositions: Array<{start: number, end: number}>
+  ): number {
+    let realIndex = foundIndex;
+    
+    // Add back the lengths of previously removed sections
+    for (const used of usedPositions.sort((a, b) => a.start - b.start)) {
+      if (used.start <= realIndex) {
+        realIndex += (used.end - used.start);
+      }
+    }
+    
+    return realIndex;
   }
   
   /**

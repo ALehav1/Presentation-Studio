@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
+import { useDebouncedCallback } from '../../../shared/hooks/useDebounce';
 
 interface ScriptEditorProps {
   slideId: string;
@@ -19,23 +20,21 @@ export function ScriptEditor({ slideId, initialScript = '', className = '' }: Sc
     setWordCount(words.length);
   }, [script]);
 
-  // Auto-save with debounce
-  const debouncedSave = useCallback(() => {
-    const timeoutId = setTimeout(() => {
-      if (script !== initialScript) {
-        setIsSaving(true);
-        updateSlideScript(slideId, script);
-        setTimeout(() => setIsSaving(false), 300); // Show saving indicator briefly
-      }
-    }, 500);
+  // Auto-save with proper debounce
+  const debouncedSave = useDebouncedCallback((newScript: string) => {
+    if (newScript !== initialScript && newScript.trim()) {
+      setIsSaving(true);
+      updateSlideScript(slideId, newScript);
+      setTimeout(() => setIsSaving(false), 300); // Show saving indicator briefly
+    }
+  }, 500);
 
-    return () => clearTimeout(timeoutId);
-  }, [script, slideId, updateSlideScript, initialScript]);
-
+  // Trigger save when script changes
   useEffect(() => {
-    const cleanup = debouncedSave();
-    return cleanup;
-  }, [debouncedSave]);
+    if (script !== initialScript) {
+      debouncedSave(script);
+    }
+  }, [script, initialScript, debouncedSave]);
 
   // Update local state when slide changes
   useEffect(() => {
