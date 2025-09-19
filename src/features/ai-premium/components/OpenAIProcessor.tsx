@@ -47,12 +47,12 @@ export const OpenAIProcessor = () => {
   const slides = currentPresentation?.slides || [];
   const hasScript = Boolean(currentPresentation?.fullScript);
   
-  // Initialize OpenAI service with API key
+  // Initialize OpenAI service with high-quality models
   const openaiService = new OpenAIService({
     apiKey: apiKey || undefined,
-    visionModel: "gpt-4o-mini",    // Cost-effective vision
-    textModel: "gpt-4.1-mini",     // Latest text model
-    hardTokenCap: 2048,
+    visionModel: "gpt-5",          // Best vision quality with fallback
+    textModel: "gpt-5",            // GPT-5 for reasoning + verbosity
+    hardTokenCap: 4096,            // Give GPT-5 room for rich outputs
     temperature: 0.2
   });
 
@@ -71,15 +71,20 @@ export const OpenAIProcessor = () => {
     try {
       console.log('🔗 Testing OpenAI connection...');
       
-      // Simple test call
-      const testService = new OpenAIService({ apiKey });
-      const response = await testService.client.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_tokens: 50,
-        messages: [{ role: 'user', content: 'Test connection' }]
+      // Simple test call using our Edge Function
+      const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey,
+          model: "gpt-4o-mini",
+          max_tokens: 50,
+          messages: [{ role: 'user', content: 'Test connection' }]
+        })
       });
 
-      if (response.choices?.[0]?.message?.content) {
+      const data = await response.json();
+      if (response.ok && data.choices?.[0]?.message?.content) {
         console.log('✅ OpenAI connection successful');
         setConnectionStatus('connected');
         setProgress('Connection successful!');
@@ -132,8 +137,8 @@ export const OpenAIProcessor = () => {
       const slideAnalysisPromises = slides.map(async (slide, index) => {
         console.log(`🔍 OpenAI analyzing slide ${index + 1}...`);
         
-        // Convert slide image to base64 data URL
-        const imageDataUrl = `data:image/png;base64,${slide.imageBase64}`;
+        // Convert slide image to base64 data URL from imageUrl
+        const imageDataUrl = slide.imageUrl;
         
         const result = await service.analyzeSlideWithVision(imageDataUrl, index + 1);
         
@@ -149,33 +154,52 @@ export const OpenAIProcessor = () => {
       const slideAnalyses = await Promise.all(slideAnalysisPromises);
       console.log('🎉 All slide analyses complete');
 
-      // Step 2: Match script to slides intelligently
+      // Step 2: Two-pass script matching for higher quality
       setCurrentStep(2);
-      setProgress('Matching script to slides with AI intelligence...');
+      setProgress('Creating micro-summaries for precise matching...');
       
-      const scriptMatchResult = await service.matchScriptToSlidesIntelligently(
-        slideAnalyses,
+      // Pass A: Create compact summaries
+      const slideSummaries = await service.summarizeAllSlidesForMatching(slideAnalyses);
+      
+      setProgress('Matching script using GPT-5 intelligence...');
+      
+      // Pass B: Match script to summaries (more accurate)
+      const scriptMatchResult = await service.matchScriptToSlidesFromSummaries(
+        slideSummaries,
         currentPresentation!.fullScript!
       );
 
       let scriptMatches: ScriptMatch[] = [];
       if (scriptMatchResult.success) {
         scriptMatches = scriptMatchResult.matches;
-        console.log('🎯 Script matching successful');
+        console.log('🎯 Two-pass script matching successful');
       } else {
-        console.warn('⚠️ Script matching failed, using semantic fallback');
-        // Fallback to semantic splitting
-        const fallbackSections = service.fallbackSemanticSplit(
-          currentPresentation!.fullScript!, 
-          slides.length
+        console.warn('⚠️ Two-pass matching failed, trying single-pass...');
+        
+        // Fallback to single-pass matching
+        const singlePassResult = await service.matchScriptToSlidesIntelligently(
+          slideAnalyses,
+          currentPresentation!.fullScript!
         );
-        scriptMatches = fallbackSections.map((section, i) => ({
-          slideNumber: i + 1,
-          scriptSection: section,
-          confidence: 70,
-          reasoning: 'Semantic fallback - OpenAI matching failed',
-          keyAlignment: []
-        }));
+        
+        if (singlePassResult.success) {
+          scriptMatches = singlePassResult.matches;
+          console.log('🎯 Single-pass fallback successful');
+        } else {
+          console.warn('⚠️ All AI matching failed, using semantic fallback');
+          // Final fallback to semantic splitting
+          const fallbackSections = service.fallbackSemanticSplit(
+            currentPresentation!.fullScript!, 
+            slides.length
+          );
+          scriptMatches = fallbackSections.map((section, i) => ({
+            slideNumber: i + 1,
+            scriptSection: section,
+            confidence: 70,
+            reasoning: 'Semantic fallback - All AI matching failed',
+            keyAlignment: []
+          }));
+        }
       }
 
       // Step 3: Generate expert coaching for each slide
