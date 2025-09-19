@@ -50,7 +50,7 @@ export const SimpleOpenAIProcessor = () => {
         body: JSON.stringify({
           apiKey,
           model: "gpt-4o-mini",
-          max_tokens: 10,
+          max_completion_tokens: 10,
           messages: [{ role: 'user', content: 'Test connection' }]
         })
       });

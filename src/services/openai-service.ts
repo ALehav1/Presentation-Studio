@@ -73,7 +73,7 @@ export class OpenAIService {
     const tryOnce = async (model: string) => this.client.chat.completions.create({
       model,
       temperature: this.temperature,
-      max_tokens: this.hardTokenCap,
+      max_completion_tokens: this.hardTokenCap,
       response_format: { type: "json_object" },
       messages: [{
         role: "user",
@@ -133,7 +133,7 @@ export class OpenAIService {
       const res = await this.client.chat.completions.create({
         model: this.textModel,               // "gpt-5"
         temperature: 0.1,
-        max_tokens: 256,              // small, uniform budget
+        max_completion_tokens: 256,              // small, uniform budget
         response_format: { type: "json_object" },
         messages: [
           {
@@ -193,7 +193,7 @@ Return JSON:
       const res = await this.client.chat.completions.create({
         model: this.textModel,     // "gpt-5"
         temperature: 0.1,
-        max_tokens: this.hardTokenCap,  // consider 4096 for rich rationale
+        max_completion_tokens: this.hardTokenCap,  // consider 4096 for rich rationale
         response_format: { type: "json_object" },
         messages: [
           {
@@ -244,7 +244,7 @@ Return JSON:
       const res = await this.client.chat.completions.create({
         model: this.textModel,
         temperature: 0.3,
-        max_tokens: this.hardTokenCap,
+        max_completion_tokens: this.hardTokenCap,
         response_format: { type: "json_object" },
         messages: [
           {

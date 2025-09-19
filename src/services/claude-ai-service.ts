@@ -58,7 +58,7 @@ export class ClaudeAIService {
         body: JSON.stringify({
           apiKey: this.apiKey,
           model: this.model,
-          max_tokens: 1200,
+          max_completion_tokens: 1200,
           messages: [{
             role: 'user',
             content: [
@@ -173,7 +173,7 @@ Return ONLY the JSON, no other text.`
         body: JSON.stringify({
           apiKey: this.apiKey,
           model: this.model,
-          max_tokens: 4000,
+          max_completion_tokens: 4000,
           messages: [{
             role: 'user',
             content: `You are an expert presentation coach. Match script content to slide topics.
@@ -268,7 +268,7 @@ Focus on TOPIC ALIGNMENT, not word count.`
         body: JSON.stringify({
           apiKey: this.apiKey,
           model: this.model,
-          max_tokens: 2000,
+          max_completion_tokens: 2000,
           messages: [{
             role: 'user',
             content: `You are a world-class presentation coach (think TED Talk level expertise). Generate specific, actionable coaching for this slide.
@@ -358,7 +358,7 @@ Be specific and reference the actual slide content. Focus on techniques that top
         body: JSON.stringify({
           apiKey: this.apiKey,
           model: this.model,
-          max_tokens: 20,
+          max_completion_tokens: 20,
           messages: [{
             role: 'user',
             content: 'Say "Claude connected!" and nothing else.'
