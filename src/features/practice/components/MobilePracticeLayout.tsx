@@ -54,7 +54,7 @@ export function MobilePracticeLayout({
       </div>
 
       {/* Main Content - Uses CSS Grid */}
-      <div className="flex-1 grid grid-rows-[35vh_1fr] gap-0 overflow-hidden">
+      <div className="flex-1 grid grid-rows-[35vh_1fr] gap-0">
         
         {/* Slide Section - Fixed 35vh */}
         <div className="bg-gray-50 flex items-center justify-center p-4 border-b">
@@ -73,7 +73,7 @@ export function MobilePracticeLayout({
         </div>
 
         {/* Content Section - Remaining space */}
-        <div className="flex flex-col overflow-hidden">
+        <div className="flex flex-col overflow-y-auto">
           {/* Tab Switcher */}
           <div className="flex border-b bg-gray-50">
             <button

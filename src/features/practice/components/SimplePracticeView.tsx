@@ -355,7 +355,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
       </div>
 
       {/* Main Content - New Three Section Layout */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         
         {/* Top Row: Slide + Presenter Guide (Mobile-first responsive) */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0">
