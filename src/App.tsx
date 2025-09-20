@@ -15,7 +15,7 @@ import { Toaster } from './components/ui/toast';
 import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
 import './App.css';
 
-export function App() {
+function App() {
   const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB, getTempUploadedScript } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
@@ -393,3 +393,5 @@ export function App() {
     </div>
   );
 }
+
+export default App;
