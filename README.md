@@ -23,10 +23,16 @@
 - **Unified Experience**: Both paths have same steps and UI
 
 ### ✅ **Better Messaging**
-- **Part 1/Part 2 Terminology**: Clear distinction between basic setup and AI enhancement
+- **Clear Preparation Options**: Three distinct paths - Quick Start, Manual Setup, AI Setup
 - **Dynamic Buttons**: "Process with OpenAI" → "✓ Go to Practice" after completion
 - **Success Toasts**: Clear feedback at each step
 - **Data Protection**: Confirmation dialog before clearing data
+
+### ✅ **Hybrid Script Alignment**
+- **Manual Script Distribution**: Users can manually assign script sections to slides
+- **User-Written Guides**: Create custom presenter guides with key points and tips
+- **AI Respects Manual Work**: AI processor uses manually distributed scripts if present
+- **Visual Status Grid**: See which slides have scripts and guides at a glance
 
 ## 🔐 FLEXIBLE API INTEGRATION
 
@@ -64,21 +70,27 @@ Browser → OpenAI API       Browser → Proxy → OpenAI API
 **Clear Setup Flow:**
 
 ```text
-📁 Step 1: Content Setup
+📁 Step 1: Content Upload
 ├── Upload PDF slides (drag & drop)
 ├── Add presentation script
 └── View slides + edit scripts side-by-side
 
-🤖 Step 2: AI Script Analysis  
-├── Choose API mode (server/client)
-├── Test connection
-└── Process with OpenAI Vision
+🎯 Step 2: Choose Preparation Method
+├── 🚀 Quick Start - Practice immediately with full script
+├── ✏️ Manual Setup - Distribute scripts & write guides yourself
+└── 🧠 AI Setup - Let AI enhance with smart distribution & guides
+
+🎤 Step 3: Practice
+├── Basic Practice - Full script or manual segments
+├── Enhanced Practice - AI-distributed scripts with guides
+└── Mobile-optimized for on-the-go practice
 ```
 
 ## ✨ KEY IMPROVEMENTS
 
 ### 📱 STREAMLINED UI/UX
-- **Clear 2-Step Process**: Content Setup → AI Analysis
+- **Clear 3-Step Process**: Upload → Prepare → Practice
+- **Preparation Options**: Quick Start, Manual Setup, or AI Enhancement
 - **Side-by-Side Layout**: View slides and scripts together
 - **Smart Status Tracking**: Visual indicators for each setup stage
 - **Auto-Save Scripts**: Changes save automatically with debouncing
@@ -329,19 +341,26 @@ src/
 │   │   ├── components/   # Script UI components
 │   │   │   ├── ScriptEditor.tsx            # Individual slide editing
 │   │   │   ├── ScriptUpload.tsx            # Streamlined upload with auto-parsing
-│   │   │   ├── SlideScriptEditor.tsx       # 🆕 Desktop grid view with direct editing
-│   │   │   ├── SimplifiedScriptView.tsx    # 🆕 Mobile carousel view
-│   │   │   └── ResponsiveScriptEditor.tsx  # 🆕 Responsive wrapper component
+│   │   │   ├── ManualScriptAlignment.tsx   # 🆕 Basic manual script distribution
+│   │   │   ├── EnhancedManualAlignment.tsx # 🆕 Manual alignment with guide creation
+│   │   │   ├── SlideScriptEditor.tsx       # Desktop grid view with direct editing
+│   │   │   ├── SimplifiedScriptView.tsx    # Mobile carousel view
+│   │   │   └── ResponsiveScriptEditor.tsx  # Responsive wrapper component
 │   │   ├── services/     # 🆕 Script allocation intelligence
 │   │   │   └── script-allocator.ts         # Multi-pattern parsing & smart reallocation
 │   │   └── hooks/        # 🆕 React integration
 │   │       └── useScriptAllocation.ts      # Script allocation state management
-│   └── practice/         # 🎤 Practice Mode (Complete)
-│       └── components/   # Three-pane layout
-│           ├── PracticeView.tsx       # Main practice interface
-│           ├── ScriptPane.tsx         # Script viewing pane
-│           ├── PresenterGuidePane.tsx # AI guidance pane
-│           └── SlideThumbnailPane.tsx # Slide navigation pane
+│   ├── practice/         # 🎤 Practice Mode (Complete)
+│   │   └── components/   # Practice UI components
+│   │       ├── SimplePracticeView.tsx  # 🆕 Unified practice interface
+│   │       ├── MobilePracticeLayout.tsx # 🆕 Mobile-optimized CSS Grid layout
+│   │       ├── PracticeView.tsx       # Legacy practice interface
+│   │       ├── ScriptPane.tsx         # Script viewing pane
+│   │       ├── PresenterGuidePane.tsx # AI guidance pane
+│   │       └── SlideThumbnailPane.tsx # Slide navigation pane
+│   └── setup/            # 🆕 Setup flow components
+│       └── components/   
+│           └── PreparationOptions.tsx  # Three preparation paths UI
 ├── services/              # 🆕 Service layer
 │   └── imageStorage.ts   # IndexedDB image management with Dexie
 ├── shared/               # Shared components and utilities
@@ -389,18 +408,35 @@ src/
 
 ## 🎯 Usage
 
-### 🧠 **NEW: AI-Powered Workflow** (GPT-5 Vision Intelligence)
+### 🧠 **NEW: Flexible Preparation Workflow**
 
-**📁 Setup Phase** ✅ **AI Vision Analysis:**
+**📁 Upload Phase** ✅ **Content Setup:**
 - Upload PDF slides via elegant drag-and-drop interface with shadcn/ui components  
-- Upload/paste script → **Enter your OpenAI API key for processing**
-- **GPT-5 Vision** reads each slide: text, charts, diagrams, topics
+- Upload/paste script with automatic format detection
+- Images automatically saved to IndexedDB for unlimited storage
+- Both upload paths (script-first or slides-first) lead to same setup
+
+**🎯 Preparation Phase** ✅ **Choose Your Path:**
+
+**Option 1: Quick Start** 🚀
+- Practice immediately with full script displayed
+- No AI processing required
+- Perfect for quick run-throughs
+
+**Option 2: Manual Setup** ✏️
+- Distribute script sections to specific slides yourself
+- Write custom presenter guides with key points and tips
+- Full control over content organization
+- Visual grid shows script coverage per slide
+
+**Option 3: AI Enhancement** 🧠
+- **Enter your OpenAI API key for processing**
+- **GPT-4 Vision** reads each slide: text, charts, diagrams, topics
 - **Semantic script matching** aligns content intelligently (not word count!)
 - **Confidence scoring** shows match quality with detailed reasoning
+- **AI-generated guides** with presenter tips and transitions
 - **Toast notification**: "🎉 OpenAI processing complete! Average confidence: 87%"
-- Images automatically saved to IndexedDB for unlimited storage
-
-**💰 Cost**: ~$0.10-0.30 per presentation using your own OpenAI API key
+- **💰 Cost**: ~$0.10-0.30 per presentation using your own OpenAI API key
 
 **🎯 Practice Phase** ✅ **Direct Manipulation Revolution:**
 - **No confusing dialogs** - see all slides and scripts in one view
@@ -411,15 +447,22 @@ src/
 - **Progressive refinement** - fix slides one by one until perfect
 - **Reset options** - individual slide reset or "Reset All to Auto"
 
-**🎤 Practice Mode** ✅ **AI-Enhanced Presenter Coaching:**
+**🎤 Practice Mode** ✅ **Two Practice Experiences:**
+
+**Basic Practice Mode** (No AI Required):
+- **Full script display** or manually segmented scripts
+- **Simple navigation** between slides
+- **Mobile-optimized** with CSS Grid layout
+- **No overlapping UI** - tab switcher for Script/Guide on mobile
+- **Touch-friendly** with 44px+ tap targets
+
+**Enhanced Practice Mode** (AI-Powered):
 - **Superior Three-Section Layout**: Slide + AI Guide (top row, equal sizes) | Script (bottom row, full width)
-- **Real AI Coaching**: Generated from actual slide content + script analysis (not placeholder text!)
+- **Real AI Coaching**: Generated from actual slide content + script analysis
 - **Inline Script Editing**: Click-to-edit scripts with auto-save (1-second debounce)
-- **Confidence Indicators**: See match quality scores for each slide-script pairing
-- **Smart Recommendations**: Transition coaching, timing, and emphasis points based on content
-- **Professional UI**: Glass morphism cards with gradient designs and smooth animations
+- **Smart Recommendations**: Transition coaching, timing, and emphasis points
+- **Professional UI**: Glass morphism cards with gradient designs
 - **Hide/Show Controls**: Toggle section visibility for focused practice
-- **Mobile Responsive**: Beautiful layout on all devices (375px minimum)
 
 **✨ Coming Soon**: Advanced coaching features with slide role detection, presentation flow analysis, and context-aware guidance
 
