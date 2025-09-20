@@ -1,3 +1,14 @@
+/* Mobile scroll fix - AGGRESSIVE OVERRIDE */
+html, body {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#root {
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
 /* ===== MOBILE SCROLLING FIX ===== */
 
 /* 1. Reset the document flow to natural behavior */

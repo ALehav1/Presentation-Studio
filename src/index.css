@@ -4,8 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Removed height: 100% to fix mobile scrolling */
 html, body, #root { 
-  height: 100%; 
   margin: 0;
 }
 

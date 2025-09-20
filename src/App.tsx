@@ -86,6 +86,43 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      {/* Mobile Debug Panel - TEMPORARY */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(0,0,0,0.9)',
+          color: 'white',
+          padding: '10px',
+          fontSize: '11px',
+          zIndex: 99999,
+          fontFamily: 'monospace'
+        }}>
+          <div>Body Height: {document.body.scrollHeight}px</div>
+          <div>Screen Height: {window.innerHeight}px</div>
+          <div>Can Scroll: {document.body.scrollHeight > window.innerHeight ? '✅ YES' : '❌ NO'}</div>
+          <div>Body Overflow: {getComputedStyle(document.body).overflow}</div>
+          <button 
+            onClick={() => {
+              document.body.style.overflow = 'visible';
+              document.documentElement.style.overflow = 'visible';
+              document.documentElement.style.height = 'auto';
+            }}
+            style={{
+              background: 'green',
+              color: 'white',
+              padding: '5px 10px',
+              marginTop: '5px',
+              border: 'none',
+              borderRadius: '3px'
+            }}
+          >
+            Force Fix Scroll
+          </button>
+        </div>
+      )}
       {/* Modern glass morphism header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/70 border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
