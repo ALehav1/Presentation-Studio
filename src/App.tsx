@@ -255,7 +255,12 @@ export default function App() {
               
               {/* Preparation Options - Choose how to prepare for practice */}
               <div className="mt-8">
-                <PreparationOptions />
+                <PreparationOptions 
+                  onNavigateToPractice={() => {
+                    setSetupComplete(true);
+                    setCurrentMode('practice');
+                  }}
+                />
               </div>
             </TabsContent>
             

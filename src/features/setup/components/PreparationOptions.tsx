@@ -6,7 +6,11 @@ import { Zap, Brain, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { SimpleOpenAIProcessor } from '../../ai-premium/components/SimpleOpenAIProcessor';
 
-export function PreparationOptions() {
+interface PreparationOptionsProps {
+  onNavigateToPractice?: () => void;
+}
+
+export function PreparationOptions({ onNavigateToPractice }: PreparationOptionsProps) {
   const { currentPresentation, getTempUploadedScript } = usePresentationStore();
   const [showAI, setShowAI] = useState(false);
   
@@ -56,10 +60,15 @@ export function PreparationOptions() {
               <Button 
                 className="mt-4 w-full min-h-[44px]"
                 onClick={() => {
-                  // Navigate directly to practice tab
-                  const tabs = document.querySelector('[role="tablist"]');
-                  const practiceTab = tabs?.querySelector('[value="practice"]') as HTMLButtonElement;
-                  practiceTab?.click();
+                  if (onNavigateToPractice) {
+                    onNavigateToPractice();
+                  } else {
+                    // Fallback: try to click the practice tab
+                    const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+                    if (practiceTab && !practiceTab.disabled) {
+                      practiceTab.click();
+                    }
+                  }
                 }}
               >
                 <ArrowRight className="w-4 h-4 mr-2" />
