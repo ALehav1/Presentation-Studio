@@ -28,7 +28,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     nextSlide,
     previousSlide,
     updateSlideScript,
-    updateSlideGuide
+    updateSlideGuide,
+    getTempUploadedScript
   } = usePresentationStore();
 
   if (process.env.NODE_ENV === 'development') {
@@ -265,7 +266,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   // For basic practice without AI, show the full script
   const practiceScript = hasAIProcessing 
     ? currentSlide?.script 
-    : currentPresentation?.fullScript || currentPresentation?.slides.map(s => s.script).filter(Boolean).join('\n\n---\n\n');
+    : currentPresentation?.fullScript || getTempUploadedScript() || currentPresentation?.slides.map(s => s.script).filter(Boolean).join('\n\n---\n\n');
 
   // Use mobile layout on small screens
   if (isMobile) {
