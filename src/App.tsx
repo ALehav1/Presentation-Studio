@@ -4,7 +4,7 @@ import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { ScriptFlow } from './features/upload/components/ScriptFlow';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
-import { ManualScriptAlignment } from './features/script/components/ManualScriptAlignment';
+import { EnhancedManualAlignment } from './features/script/components/EnhancedManualAlignment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
@@ -286,7 +286,7 @@ export default function App() {
               
               {/* Manual Script Alignment - Optional tool between Part 1 and Part 2 */}
               <div className="mt-6">
-                <ManualScriptAlignment />
+                <EnhancedManualAlignment />
               </div>
               
               {/* Part 2: AI Processing - Directly embedded */}
