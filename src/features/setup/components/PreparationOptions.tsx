@@ -4,7 +4,7 @@ import { Badge } from '../../../components/ui/badge';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { Zap, Edit, Brain, ArrowRight, Check } from 'lucide-react';
 import { useState } from 'react';
-import { EnhancedManualAlignment } from '../../script/components/EnhancedManualAlignment';
+import { ManualScriptAlignment } from '../../script/components/ManualScriptAlignment';
 import { SimpleOpenAIProcessor } from '../../ai-premium/components/SimpleOpenAIProcessor';
 
 export function PreparationOptions() {
@@ -13,8 +13,8 @@ export function PreparationOptions() {
   
   const slides = currentPresentation?.slides || [];
   const hasScript = currentPresentation?.fullScript || slides.some(s => s.script?.trim());
-  const hasManualContent = slides.some(s => s.script?.trim() || s.guide?.keyPoints?.length > 0);
-  const hasAIContent = slides.some(s => s.guide?.keyPoints?.some(kp => kp.includes('AI')) || false);
+  const hasManualContent = slides.some(s => s.script?.trim());
+  const hasAIContent = slides.some(s => s.guide && s.guide.keyMessages && s.guide.keyMessages.length > 0);
   
   if (!hasScript) {
     return (
@@ -37,7 +37,7 @@ export function PreparationOptions() {
         >
           ← Back to options
         </Button>
-        <EnhancedManualAlignment />
+        <ManualScriptAlignment />
       </div>
     );
   }

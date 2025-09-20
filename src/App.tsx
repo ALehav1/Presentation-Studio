@@ -4,8 +4,7 @@ import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { ScriptFlow } from './features/upload/components/ScriptFlow';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
-import { ManualScriptAlignment } from './features/script/components/ManualScriptAlignment';
-import { SimpleOpenAIProcessor } from './features/ai-premium/components/SimpleOpenAIProcessor';
+import { PreparationOptions } from './features/setup/components/PreparationOptions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
@@ -255,14 +254,9 @@ export default function App() {
                 </div>
               </div>
               
-              {/* Manual Script Alignment - Optional tool */}
-              <div className="mt-6">
-                <ManualScriptAlignment />
-              </div>
-              
-              {/* AI Processing */}
+              {/* Preparation Options - Choose how to prepare for practice */}
               <div className="mt-8">
-                <SimpleOpenAIProcessor />
+                <PreparationOptions />
               </div>
             </TabsContent>
             
