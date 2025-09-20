@@ -6,16 +6,17 @@
 
 ## 🔐 CRITICAL SECURITY & STABILITY FIXES
 
-### 🛡️ MAJOR SECURITY BREAKTHROUGH (Just Fixed)
+### 🛡️ HYBRID API KEY ARCHITECTURE (New)
 
-✅ **API Key Financial Security**: NO MORE API key exposure in browser localStorage!  
-✅ **Backend Proxy Architecture**: All AI requests go through secure server endpoints  
-✅ **Zero Financial Risk**: API keys never touch browser - can't be stolen via DevTools  
-✅ **Text Corruption Bug Fixed**: Position-based script allocation prevents data corruption  
-✅ **Enterprise Error Handling**: Retry logic, rate limiting, and graceful degradation  
+✅ **Dual API Key Support**: Server-side OR client-side - you choose the security level  
+✅ **Enterprise Server Keys**: Zero browser exposure when using server-side configuration  
+✅ **Personal Client Keys**: Direct OpenAI integration when you want to use your own key  
+✅ **Smart Detection**: Auto-detects server key availability and adapts UI accordingly  
+✅ **Priority Logic**: Client key always takes precedence when provided (you control costs)  
+✅ **Sharing-Friendly**: Others can use their keys when server key disabled/missing  
 
-**Previous Risk:** API keys in localStorage could be stolen → Thousands in unauthorized charges  
-**Now Secure:** Backend proxy with environment variables → Zero financial exposure
+**Enterprise Mode:** Server key in Vercel env → Users pay nothing, enterprise-grade security  
+**Personal Mode:** Users enter own keys → They pay OpenAI directly, full cost control
 
 ### 🚀 **ENTERPRISE AI SLIDE READER V2**
 
@@ -28,21 +29,36 @@
 - **⚡ Cost Optimization**: $0.0001 per slide with gpt-4o-mini model
 
 **Backend Security Architecture:**
-```
-Browser → Secure Proxy → OpenAI API (hidden key)
-├── /api/ai/read-slide (main processing endpoint)  
-├── /api/ai/read-slide/health (health monitoring)
-└── Rate limiting + request validation
+
+```text
+Browser → Hybrid Proxy → OpenAI API
+├── /api/check-key (detect server key availability)
+├── /api/openai (hybrid endpoint: server OR client key)
+├── Priority: client key > server key
+└── Graceful fallback with clear error messages
 ```
 
-**Batch Processing Example:**
+**API Key Selection UI:**
+
+```text
+🤖 OpenAI API Configuration
+
+○ Server-side Processing (Enterprise)
+  ✓ Available OR ⚠️ No key configured - disabled
+
+○ Client-side Processing (Personal) 
+  [sk-...                    ] [Test]
+  Get your key at platform.openai.com
+
+[Test Server Connection] / [Test Client Connection]
 ```
-🔄 Processing slides: 3 at a time with 500ms delays
-✅ Slide 1: "Introduction & Welcome" (Title + 4 key points)
-✅ Slide 2: "Financial Results" (Chart detected + 3 metrics)  
-✅ Slide 3: "Implementation Plan" (Timeline + 5 action items)
-📊 Average processing: <2 seconds per slide
-```
+
+**User Experience Scenarios:**
+
+- **Enterprise User**: Server key configured → Uses server by default, can override with client key
+- **Personal User**: No server key → Client option enabled, must enter own key  
+- **Sharing**: Send URL to others → They use their own keys when server unavailable
+- **Cost Control**: Enter client key → Always uses your key (you pay directly)
 
 ## 🧠 **SECURE AI VISION INTELLIGENCE**
 
