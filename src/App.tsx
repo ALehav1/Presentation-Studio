@@ -57,8 +57,12 @@ export default function App() {
               )}
             </div>
             {currentPresentation && (
-              <Button variant="ghost" onClick={clearPresentation}>
-                New Presentation
+              <Button 
+                variant="ghost" 
+                onClick={clearPresentation}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                🧹 Start Fresh
               </Button>
             )}
           </div>

@@ -55,6 +55,10 @@ export const usePresentationStore = create<PresentationState>()(
       
       // Create new presentation from uploaded PDF
       createPresentation: async (title, slideImages) => {
+        // Automatically clear any existing presentation first
+        await get().clearPresentation();
+        console.log('🧹 Auto-cleared existing presentation for fresh start');
+        
         const timestamp = Date.now();
         const presentationId = `pres-${timestamp}`;
         
@@ -215,6 +219,8 @@ export const usePresentationStore = create<PresentationState>()(
       clearPresentation: async () => {
         const { currentPresentation } = get();
         
+        console.log('🧹 Starting fresh presentation cleanup...');
+        
         // Delete images from IndexedDB when clearing presentation
         if (currentPresentation?.id) {
           try {
@@ -225,13 +231,21 @@ export const usePresentationStore = create<PresentationState>()(
           }
         }
         
+        // Clear any temporary uploaded script as well
+        const { setTempUploadedScript } = get();
+        setTempUploadedScript(null);
+        
         set({
           currentPresentation: null,
           uploadStatus: 'idle',
           uploadProgress: 0,
           uploadError: null,
-          currentSlideIndex: 0
+          currentSlideIndex: 0,
+          lastEditLocation: undefined,
+          tempUploadedScript: null
         });
+        
+        console.log('✅ Fresh presentation cleanup complete');
       },
       
       // Load images from IndexedDB for current presentation
