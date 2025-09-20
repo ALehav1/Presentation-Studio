@@ -57,7 +57,7 @@ export class OpenAIService {
   private temperature: number;
 
   constructor(opts: OpenAIServiceOpts = {}) {
-    const apiKey = opts.apiKey || process.env.OPENAI_API_KEY;
+    const apiKey = opts.apiKey || import.meta.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     
     // Graceful handling for missing API key
     if (!apiKey) {
