@@ -9,6 +9,7 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Input } from '../../../components/ui/input';
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Maximize2, AlertCircle, Edit2, Save } from 'lucide-react';
 import { useDebouncedCallback } from '../../../shared/hooks/useDebounce';
+import { MobilePracticeLayout } from './MobilePracticeLayout';
 
 interface SimplePracticeViewProps {
   onBack: () => void;
@@ -53,6 +54,24 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   // Get current slide data
   const currentSlide = currentPresentation?.slides[currentSlideIndex];
   const totalSlides = currentPresentation?.slides.length || 0;
+  
+  // Check if we have AI-processed content
+  const hasAIProcessing = currentPresentation?.slides.some(s => 
+    s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)
+  ) || false;
+  
+  // Check if we're on mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   
   // Debounced save functions
@@ -242,6 +261,29 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   const handleSlideSelect = (index: number) => {
     setCurrentSlide(index);
   };
+  
+  // For basic practice without AI, show the full script
+  const practiceScript = hasAIProcessing 
+    ? currentSlide?.script 
+    : currentPresentation?.fullScript || currentPresentation?.slides.map(s => s.script).filter(Boolean).join('\n\n---\n\n');
+
+  // Use mobile layout on small screens
+  if (isMobile) {
+    return (
+      <MobilePracticeLayout
+        currentSlideIndex={currentSlideIndex}
+        totalSlides={totalSlides}
+        slideImageUrl={currentSlide?.imageUrl}
+        script={practiceScript}
+        guide={contentGuide}
+        hasAIProcessing={hasAIProcessing}
+        onPrevious={previousSlide}
+        onNext={nextSlide}
+        onSlideSelect={handleSlideSelect}
+        onBack={onBack}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen lg:h-screen bg-background" style={{ height: '100dvh' }}>
@@ -254,7 +296,9 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
               <span className="hidden sm:inline">Back to Setup</span>
               <span className="sm:hidden">Back</span>
             </Button>
-            <h1 className="text-lg font-semibold">Practice Mode</h1>
+            <h1 className="text-lg font-semibold">
+              {hasAIProcessing ? 'AI-Enhanced Practice' : 'Basic Practice Mode'}
+            </h1>
           </div>
         
         {/* Slide Navigation */}
@@ -608,10 +652,21 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
                       </Button>
                     </div>
                   </div>
-                ) : currentSlide?.script ? (
+                ) : (hasAIProcessing ? currentSlide?.script : practiceScript) ? (
                   <div className="prose prose-sm max-w-none">
+                    {!hasAIProcessing && (
+                      <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <p className="text-sm text-amber-800 font-medium mb-2">
+                          📝 Basic Practice Mode - Full Script View
+                        </p>
+                        <p className="text-xs text-amber-700">
+                          You're viewing your complete script. For intelligent per-slide scripts, 
+                          process with AI in the Setup tab.
+                        </p>
+                      </div>
+                    )}
                     <p className="whitespace-pre-wrap leading-relaxed text-lg md:text-base text-gray-800 p-4 md:p-0">
-                      {currentSlide.script}
+                      {hasAIProcessing ? currentSlide.script : practiceScript}
                     </p>
                   </div>
                 ) : (
@@ -653,20 +708,23 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
           <span className="sm:hidden">Prev</span>
         </Button>
         
-        <div className="flex items-center gap-3 px-4">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => handleSlideSelect(index)}
-              className={`min-w-[48px] min-h-[48px] w-12 h-12 rounded-full transition-colors flex items-center justify-center text-sm ${
-                index === currentSlideIndex 
-                  ? 'bg-blue-500 text-white font-semibold' 
-                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-              }`}
-            >
-              {index + 1}
-            </button>
-          ))}
+        {/* Slide Numbers - Horizontally scrollable container */}
+        <div className="flex-1 overflow-x-auto max-w-md mx-auto">
+          <div className="flex items-center gap-2 px-4 py-2">
+            {Array.from({ length: totalSlides }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleSlideSelect(index)}
+                className={`flex-shrink-0 min-w-[48px] min-h-[48px] w-12 h-12 rounded-full transition-colors flex items-center justify-center text-sm ${
+                  index === currentSlideIndex 
+                    ? 'bg-blue-500 text-white font-semibold' 
+                    : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
         </div>
         
         <Button 
