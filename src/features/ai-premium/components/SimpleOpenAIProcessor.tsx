@@ -316,11 +316,28 @@ export const SimpleOpenAIProcessor = () => {
         : await ai.summarizeAllSlidesForMatching(slideAnalyses);
       console.log('✅ Slide summaries created:', slideSummaries.length);
 
-      // STEP 3: Match script to slide summaries
-      setProgress('🎯 Matching script to slides with AI...');
+      // Check if scripts are already distributed manually
+      const hasDistributedScripts = slides.some(s => s.script?.trim());
       
-      let scriptMatches;
-      if (selectedMode === 'client' && clientApiKey) {
+      // STEP 3: Match script to slides (skip if already distributed)
+      setCurrentStep(2);
+      setProgress(hasDistributedScripts ? '✅ Using manually assigned scripts...' : '🔗 Matching script sections to slides...');
+      
+      let scriptMatches: { success: boolean; matches: ScriptMatch[]; error?: string };
+
+      // Skip script matching if already manually distributed
+      if (hasDistributedScripts) {
+        scriptMatches = { 
+          success: true, 
+          matches: slides.map((slide, index) => ({
+            slideNumber: index + 1,
+            scriptSection: slide.script || '',
+            confidence: 100, // Manual assignment = 100% confidence
+            reasoning: 'Manually assigned by user',
+            keyAlignment: []
+          }))
+        };
+      } else if (selectedMode === 'client' && clientApiKey) {
         // Client-side AI matching
         try {
           const messages = [
