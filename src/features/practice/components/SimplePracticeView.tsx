@@ -286,7 +286,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen lg:h-screen bg-background" style={{ height: '100dvh' }}>
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header with navigation and controls */}
       <div className="flex-shrink-0 border-b bg-background">
         <div className="px-4 py-3 flex items-center justify-between">

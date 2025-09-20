@@ -36,7 +36,7 @@ export function MobilePracticeLayout({
   const [activeSection, setActiveSection] = useState<'script' | 'guide'>('script');
 
   return (
-    <div className="h-screen flex flex-col bg-background" style={{ height: '100dvh' }}>
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header - Fixed height */}
       <div className="flex-shrink-0 border-b bg-white px-4 py-2">
         <div className="flex items-center justify-between">
@@ -54,7 +54,7 @@ export function MobilePracticeLayout({
       </div>
 
       {/* Main Content - Uses CSS Grid */}
-      <div className="flex-1 grid grid-rows-[35vh_1fr] gap-0">
+      <div className="grid grid-rows-[35vh_auto] gap-0">
         
         {/* Slide Section - Fixed 35vh */}
         <div className="bg-gray-50 flex items-center justify-center p-4 border-b">
