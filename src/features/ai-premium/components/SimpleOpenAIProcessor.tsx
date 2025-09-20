@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Brain, CheckCircle, Loader2, Shield, Key, Server } from 'lucide-react';
+import { Brain, CheckCircle, Loader2, Key, Server } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService } from '../../../services/openai-service';
 
