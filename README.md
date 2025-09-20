@@ -4,6 +4,30 @@
 
 🎯 **AI-Enhanced Workflow:** Upload PDF slides → Add your script → AI analyzes slides with Vision → Intelligent script-to-slide matching → Practice with AI guidance → Deliver confidently
 
+## 🆕 RECENT IMPROVEMENTS (Sept 2024)
+
+### ✅ **Mobile UX Overhaul**
+- **Fixed Critical Bug**: Practice mode was unusable on mobile (overlapping UI)
+- **New Mobile Layout**: CSS Grid with fixed heights, no overlaps
+- **Touch-Friendly**: 44px+ tap targets, horizontal scroll for slide numbers
+- **Responsive Design**: Tab switcher for Script/Guide sections on mobile
+
+### ✅ **Basic Practice Mode**
+- **No AI Required**: Practice immediately with just PDF + Script
+- **Two Modes**: "Basic Practice" (full script) and "AI-Enhanced Practice" (per-slide)
+- **Clear Upgrade Path**: Prompts to enhance with AI for better experience
+
+### ✅ **Consistent Upload Flows**
+- **Script-First**: Script → Slides → Setup (Part 1 Complete)
+- **Slides-First**: Slides → Script → Setup (Part 1 Complete)
+- **Unified Experience**: Both paths have same steps and UI
+
+### ✅ **Better Messaging**
+- **Part 1/Part 2 Terminology**: Clear distinction between basic setup and AI enhancement
+- **Dynamic Buttons**: "Process with OpenAI" → "✓ Go to Practice" after completion
+- **Success Toasts**: Clear feedback at each step
+- **Data Protection**: Confirmation dialog before clearing data
+
 ## 🔐 FLEXIBLE API INTEGRATION
 
 ### 🛡️ DUAL-MODE ARCHITECTURE
