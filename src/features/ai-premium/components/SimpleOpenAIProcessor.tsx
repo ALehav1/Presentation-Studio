@@ -165,9 +165,12 @@ export const SimpleOpenAIProcessor = () => {
         setProgress('💾 Saving matched script sections...');
         
         scriptMatches.matches.forEach((match) => {
-          const slide = slides.find(s => s.id === `slide-${currentPresentation?.id}-${match.slideNumber - 1}`);
+          const slide = slides[match.slideNumber - 1]; // Direct index access since slideNumber is 1-based
           if (slide) {
+            console.log(`📝 Updating slide ${match.slideNumber} (${slide.id}) with script:`, match.scriptSection.substring(0, 100) + '...');
             updateSlideScript(slide.id, match.scriptSection);
+          } else {
+            console.error(`❌ Could not find slide ${match.slideNumber} in slides array`);
           }
         });
 
