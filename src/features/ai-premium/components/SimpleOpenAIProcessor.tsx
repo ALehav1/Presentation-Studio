@@ -6,14 +6,17 @@ import { Input } from '../../../components/ui/input';
 import { Brain, CheckCircle, Loader2, Key, Server } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService, type ScriptMatch } from '../../../services/openai-service';
+import { useToast } from '../../../hooks/use-toast';
 
 export const SimpleOpenAIProcessor = () => {
   const { currentPresentation, updateSlideScript, tempUploadedScript } = usePresentationStore();
+  const { toast } = useToast();
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [totalSteps] = useState(4);
+  const [processingComplete, setProcessingComplete] = useState(false);
   
   // API Key management
   const [hasServerKey, setHasServerKey] = useState<boolean | null>(null);
@@ -399,13 +402,19 @@ Return JSON format:
         }
         
         setProgress('✅ Processing complete!');
-        alert(`🎉 OpenAI processing complete! 
+        setProcessingComplete(true);
         
-✅ ${slideAnalyses.length} slides analyzed
-✅ ${scriptMatches.matches.length} script sections matched
-✅ Presenter guides generated
-
-You can now go to Practice Mode!`);
+        // Show success toast
+        toast({
+          title: "🎉 AI Processing Complete!",
+          description: `Successfully analyzed ${slideAnalyses.length} slides and matched ${scriptMatches.matches.length} script sections. Practice mode is now enhanced!`,
+        });
+        
+        // Auto-navigate to practice after 2 seconds
+        setTimeout(() => {
+          const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+          practiceTab?.click();
+        }, 2000);
       } else {
         console.error('❌ Script matching failed:', scriptMatches.error);
         alert(`❌ Script matching failed: ${scriptMatches.error}`);
@@ -593,14 +602,28 @@ You can now go to Practice Mode!`);
 
       {/* Process Button */}
       <Button
-        onClick={handleProcess}
-        disabled={!slides.length || !hasScript || processing}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+        onClick={processingComplete ? () => {
+          const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+          practiceTab?.click();
+        } : handleProcess}
+        disabled={processing || (!processingComplete && (connectionStatus !== 'connected' || !currentPresentation?.slides.length || !activeScript))}
         size="lg"
+        className={`w-full min-h-[56px] ${processingComplete 
+          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
+          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+        } text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         <div className="flex items-center gap-2">
-          {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Brain className="h-5 w-5" />}
-          <span>{processing ? 'Processing...' : '🚀 Process with OpenAI'}</span>
+          {processing ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : processingComplete ? (
+            <CheckCircle className="h-5 w-5" />
+          ) : (
+            <Brain className="h-5 w-5" />
+          )}
+          <span>
+            {processing ? 'Processing...' : processingComplete ? '✓ Go to Practice' : '🚀 Process with OpenAI'}
+          </span>
         </div>
       </Button>
     </Card>

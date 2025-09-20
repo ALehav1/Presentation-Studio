@@ -80,18 +80,17 @@ export function ScriptUpload({ onScriptUploaded, onNavigateToPractice }: ScriptU
     
     // Show success message
     toast({
-      title: "Script Processed!",
-      description: "Script automatically split across all slides using intelligent allocation.",
-      action: (
+      title: "📝 Script Uploaded Successfully!",
+      description: "Your script has been added. Next step: Process with AI for enhanced practice mode.",
+      action: onNavigateToPractice ? (
         <Button 
-          size="sm" 
-          onClick={() => {
-            onNavigateToPractice?.();
-          }}
+          variant="outline" 
+          size="sm"
+          onClick={() => onNavigateToPractice()}
         >
-          Go to Practice
+          Practice Now
         </Button>
-      )
+      ) : undefined
     });
   }, [currentPresentation, parseAndApplyBulkScript, updateSlideGuide, onScriptUploaded, onNavigateToPractice, toast]);
 
