@@ -381,7 +381,12 @@ Return JSON format:
           scriptMatches = { success: true, matches: [] };
         }
       } else {
-        scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, activeScript || '');
+        const result = await ai.matchScriptToSlidesFromSummaries(slideSummaries, activeScript || '');
+        if (result.success) {
+          scriptMatches = { success: true, matches: result.matches };
+        } else {
+          scriptMatches = { success: false, matches: [], error: result.error };
+        }
       }
       
       if (scriptMatches.success) {
