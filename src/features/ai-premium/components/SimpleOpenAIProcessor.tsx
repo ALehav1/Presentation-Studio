@@ -595,11 +595,6 @@ Return JSON format:
         </div>
       </div>
 
-      {/* Debug Status */}
-      <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
-        <strong>Debug:</strong> Connection Status = "{connectionStatus}" 
-        {connectionStatus === 'connected' ? ' ✅ Button should work' : ' ❌ Button disabled'}
-      </div>
 
       {/* Progress Display */}
       {processing && (
