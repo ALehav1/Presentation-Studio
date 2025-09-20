@@ -34,7 +34,7 @@ export function PreparationOptions({ onNavigateToPractice }: PreparationOptionsP
         >
           ← Back to options
         </Button>
-        <SimpleOpenAIProcessor />
+        <SimpleOpenAIProcessor onNavigateToPractice={onNavigateToPractice} />
       </div>
     );
   }

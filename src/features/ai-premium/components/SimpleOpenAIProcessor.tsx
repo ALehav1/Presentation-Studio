@@ -1,14 +1,18 @@
 // Server-side AI processor - enterprise secure implementation
 import { useState, useEffect } from 'react';
+import { usePresentationStore } from '../../../core/store/presentation';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Brain, CheckCircle, Loader2, Key, Server } from 'lucide-react';
-import { usePresentationStore } from '../../../core/store/presentation';
-import { OpenAIService, type ScriptMatch } from '../../../services/openai-service';
+import { Badge } from '../../../components/ui/badge';
+import { Brain, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { OpenAIService } from '../../../services/openai-service';
 import { useToast } from '../../../hooks/use-toast';
 
-export const SimpleOpenAIProcessor = () => {
+interface SimpleOpenAIProcessorProps {
+  onNavigateToPractice?: () => void;
+}
+
+export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProcessorProps) => {
   const { currentPresentation, updateSlideScript, tempUploadedScript } = usePresentationStore();
   const { toast } = useToast();
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
@@ -436,8 +440,12 @@ Return JSON format:
         
         // Auto-navigate to practice after 2 seconds
         setTimeout(() => {
-          const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
-          practiceTab?.click();
+          if (onNavigateToPractice) {
+            onNavigateToPractice();
+          } else {
+            const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+            practiceTab?.click();
+          }
         }, 2000);
       } else {
         console.error('❌ Script matching failed:', scriptMatches.error);
@@ -609,8 +617,12 @@ Return JSON format:
       {/* Process Button */}
       <Button
         onClick={processingComplete ? () => {
-          const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
-          practiceTab?.click();
+          if (onNavigateToPractice) {
+            onNavigateToPractice();
+          } else {
+            const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+            practiceTab?.click();
+          }
         } : handleProcess}
         disabled={processing || (!processingComplete && (connectionStatus !== 'connected' || !currentPresentation?.slides.length || !activeScript))}
         size="lg"
