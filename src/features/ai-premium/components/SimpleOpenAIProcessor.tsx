@@ -7,10 +7,13 @@ import { Badge } from '../../../components/ui/badge';
 import { Brain, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { OpenAIService } from '../../../services/openai-service';
 import { useToast } from '../../../hooks/use-toast';
+import { createDebugger } from '../../../shared/utils/debug';
 
 interface SimpleOpenAIProcessorProps {
   onNavigateToPractice?: () => void;
 }
+
+const debug = createDebugger('SimpleOpenAIProcessor');
 
 export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProcessorProps) => {
   const { currentPresentation, updateSlideScript, tempUploadedScript } = usePresentationStore();
@@ -95,9 +98,9 @@ export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProc
           setSelectedMode('client');
         }
         
-        console.log('🔑 Server key available:', data.hasServerKey);
+        debug.log('🔑 Server key available:', data.hasServerKey);
       } catch (error) {
-        console.error('Failed to check server key:', error);
+        debug.error('Failed to check server key', error);
         setHasServerKey(false);
       }
     };
@@ -198,8 +201,8 @@ export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProc
   };
 
   const handleProcess = async () => {
-    console.log('🔘 Process button clicked! Connection status:', connectionStatus);
-    console.log('🔍 Early checks:', { 
+    debug.log('🔘 Process button clicked! Connection status:', connectionStatus);
+    debug.log('🔍 Early checks:', { 
       connected: connectionStatus === 'connected',
       slidesCount: slides.length, 
       hasScript,
@@ -209,7 +212,7 @@ export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProc
     });
     
     if (connectionStatus !== 'connected') {
-      console.log('🔄 Auto-testing server connection...');
+      debug.log('🔄 Auto-testing server connection...');
       try {
         setConnectionStatus('testing');
         try {
@@ -241,7 +244,7 @@ export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProc
           
           setConnectionStatus('connected');
           const modeText = selectedMode === 'client' ? 'Client-side' : 'Server-side';
-          console.log(`✅ ${modeText} connection successful`);
+          debug.log(`✅ ${modeText} connection successful`);
         } catch (error) {
           console.error('❌ Connection error:', error);
           alert('Connection error. Please check your internet connection.');
@@ -268,7 +271,7 @@ export const SimpleOpenAIProcessor = ({ onNavigateToPractice }: SimpleOpenAIProc
       return;
     }
 
-    console.log('✅ All checks passed, starting processing...');
+    debug.log('✅ All checks passed, starting processing...');
 
     setProcessing(true);
     setCurrentStep(0);
