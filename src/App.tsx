@@ -49,27 +49,8 @@ export default function App() {
     }
   }, [currentPresentation]);
 
-  // Disable pull-to-refresh on mobile to prevent accidental data loss
-  useEffect(() => {
-    const preventPullToRefresh = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      
-      const touch = e.touches[0];
-      const startY = touch.clientY;
-      
-      // Check if we're at the top of the page
-      if (window.scrollY === 0 && startY > 0) {
-        // Prevent the refresh
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('touchmove', preventPullToRefresh, { passive: false });
-    
-    return () => {
-      document.removeEventListener('touchmove', preventPullToRefresh);
-    };
-  }, []);
+  // Pull-to-refresh prevention is now handled by CSS only (overscroll-behavior-y: contain)
+  // Removed touch event listener that was blocking normal scrolling
 
   useEffect(() => {
     // Development-only scroll diagnostics
@@ -86,7 +67,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      {/* Mobile Debug Panel - TEMPORARY */}
+      {/* Enhanced Mobile Debug Panel */}
       {process.env.NODE_ENV === 'development' && (
         <div style={{
           position: 'fixed',
@@ -100,18 +81,29 @@ export default function App() {
           zIndex: 99999,
           fontFamily: 'monospace'
         }}>
-          <div>Body Height: {document.body.scrollHeight}px</div>
-          <div>Screen Height: {window.innerHeight}px</div>
-          <div>Can Scroll: {document.body.scrollHeight > window.innerHeight ? '✅ YES' : '❌ NO'}</div>
-          <div>Body Overflow: {getComputedStyle(document.body).overflow}</div>
+          <div>Body Height: {document.body.scrollHeight}px | Screen: {window.innerHeight}px</div>
+          <div>Scroll Position: {window.scrollY}px</div>
+          <div>Can Scroll: {document.body.scrollHeight > window.innerHeight ? '✅' : '❌'}</div>
+          <div style={{color: 'yellow'}}>
+            Touch Events: {document.body.style.touchAction || 'default'}
+          </div>
           <button 
             onClick={() => {
+              // Remove ALL scroll blockers
               document.body.style.overflow = 'visible';
               document.documentElement.style.overflow = 'visible';
               document.documentElement.style.height = 'auto';
+              document.body.style.position = 'static';
+              document.body.style.touchAction = 'auto';
+              
+              // Remove event listeners
+              const newBody = document.body.cloneNode(true) as HTMLElement;
+              document.body.parentNode?.replaceChild(newBody, document.body);
+              
+              alert('Scroll fix applied + event listeners removed');
             }}
             style={{
-              background: 'green',
+              background: 'red',
               color: 'white',
               padding: '5px 10px',
               marginTop: '5px',
@@ -119,7 +111,7 @@ export default function App() {
               borderRadius: '3px'
             }}
           >
-            Force Fix Scroll
+            Nuclear Fix
           </button>
         </div>
       )}
