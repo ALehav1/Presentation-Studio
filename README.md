@@ -17,6 +17,17 @@
 - **Two Modes**: "Basic Practice" (full script) and "AI-Enhanced Practice" (per-slide)
 - **Clear Upgrade Path**: Prompts to enhance with AI for better experience
 
+### ✅ **Mobile Scrolling Fix (Sept 20, 2024 - Commit: b2c6f5d)**
+- **Issue**: Mobile scrolling was completely broken - users couldn't scroll on welcome/setup screens
+- **Root Causes**: 
+  - `index.css` had `height: 100%` on html, body, #root overriding fixes
+  - Touch event listener for pull-to-refresh prevention was blocking ALL touch moves
+- **Solution**:
+  - Removed `height: 100%` from index.css
+  - Removed `preventPullToRefresh` touch event listener from App.tsx
+  - Pull-to-refresh now prevented with CSS only: `overscroll-behavior-y: contain`
+- **Status**: ✅ WORKING - Scrolling functional on all mobile devices
+
 ### ✅ **Consistent Upload Flows**
 - **Script-First**: Script → Slides → Setup (Part 1 Complete)
 - **Slides-First**: Slides → Script → Setup (Part 1 Complete)

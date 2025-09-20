@@ -15,8 +15,8 @@ import { Toaster } from './components/ui/toast';
 import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
 import './App.css';
 
-export default function App() {
-  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB } = usePresentationStore();
+export function App() {
+  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB, setCurrentSlide, getTempUploadedScript } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
   const [hasAIProcessing, setHasAIProcessing] = useState(false);
@@ -286,7 +286,12 @@ export default function App() {
                         {currentPresentation && (
                           <ScriptEditor
                             slideId={currentPresentation.slides[currentSlideIndex]?.id}
-                            initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
+                            initialScript={
+                              currentPresentation.slides[currentSlideIndex]?.script || 
+                              currentPresentation.fullScript || 
+                              getTempUploadedScript() || 
+                              ''
+                            }
                           />
                         )}
                       </ErrorBoundary>
