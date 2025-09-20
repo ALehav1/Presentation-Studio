@@ -1,36 +1,44 @@
+/* Reset for scrolling issues */
+* {
+  /* Prevent any element from blocking scroll */
+  max-height: none !important;
+}
+
 /* Prevent pull-to-refresh on mobile */
 html {
   overscroll-behavior-y: contain;
-  /* Remove height constraint to allow natural document flow */
+  /* Ensure html doesn't restrict height */
+  height: auto !important;
+  overflow: visible !important;
 }
 
 body {
   overscroll-behavior-y: contain;
   margin: 0;
   padding: 0;
-  /* Ensure body can scroll */
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  /* Remove any height constraints */
+  /* Force scrolling */
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  /* Remove ALL height constraints */
+  height: auto !important;
+  min-height: 100vh;
+  max-height: none !important;
+  /* Ensure body is not fixed */
+  position: relative !important;
+}
+
+#root {
+  /* Ensure root doesn't block scrolling */
+  overflow: visible !important;
   min-height: 100vh;
   height: auto !important;
 }
 
-#root {
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  text-align: left;
-  min-height: 100vh;
-  /* Remove overflow from root to allow body scrolling */
-}
-
-/* iOS-specific scrolling fix */
-@supports (-webkit-touch-callout: none) {
-  body {
-    position: relative !important;
-    height: 100% !important;
-  }
+/* Force main content to be scrollable */
+main {
+  overflow: visible !important;
+  height: auto !important;
 }
 
 .logo {
