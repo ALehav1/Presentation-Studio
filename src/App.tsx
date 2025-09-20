@@ -4,15 +4,15 @@ import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
 import { ScriptUpload } from './features/script/components/ScriptUpload';
-import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SimpleOpenAIProcessor } from './features/ai-premium/components/SimpleOpenAIProcessor';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Trash2 } from 'lucide-react';
 import { Toaster } from './components/ui/toast';
+import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
 import './App.css';
 
 export default function App() {
@@ -20,6 +20,7 @@ export default function App() {
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
   const [hasAIProcessing, setHasAIProcessing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   
   // Load images from IndexedDB when app starts with a persisted presentation  
   useEffect(() => {
@@ -48,6 +49,28 @@ export default function App() {
     }
   }, [currentPresentation]);
 
+  // Disable pull-to-refresh on mobile to prevent accidental data loss
+  useEffect(() => {
+    const preventPullToRefresh = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      
+      const touch = e.touches[0];
+      const startY = touch.clientY;
+      
+      // Check if we're at the top of the page
+      if (window.scrollY === 0 && startY > 0) {
+        // Prevent the refresh
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventPullToRefresh, { passive: false });
+    
+    return () => {
+      document.removeEventListener('touchmove', preventPullToRefresh);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Modern glass morphism header */}
@@ -66,11 +89,14 @@ export default function App() {
             </div>
             {currentPresentation && (
               <Button 
-                variant="ghost" 
-                onClick={clearPresentation}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowClearConfirm(true)}
+                className="flex items-center gap-2"
               >
-                🧹 Start Fresh
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Start Fresh</span>
+                <span className="sm:hidden">Clear</span>
               </Button>
             )}
           </div>
@@ -300,6 +326,43 @@ export default function App() {
               {uploadStatus === 'uploading' ? 'Uploading...' : 'Converting slides...'}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-red-600">⚠️ Clear All Data?</CardTitle>
+              <CardDescription>
+                This will permanently delete:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>All uploaded slides ({currentPresentation?.slides.length || 0} slides)</li>
+                  <li>All presentation scripts</li>
+                  <li>Any AI processing results</li>
+                </ul>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  clearPresentation();
+                  setShowClearConfirm(false);
+                  setCurrentMode('setup');
+                }}
+              >
+                Yes, Start Fresh
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
       
