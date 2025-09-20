@@ -464,10 +464,10 @@ Return JSON format:
           </div>
           <div>
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              🤖 Part 2: AI Enhancement (Optional)
+              🤖 AI Enhancement
             </h2>
             <p className="text-sm text-gray-600">
-              Let AI analyze your slides and intelligently match scripts for enhanced practice (~$0.10)
+              Let AI analyze your slides and intelligently match scripts for enhanced practice
             </p>
           </div>
         </div>
@@ -576,24 +576,6 @@ Return JSON format:
           </div>
         </div>
 
-        {/* Test Connection */}
-        <div className="flex justify-center">
-          <Button
-            onClick={testConnection}
-            disabled={connectionStatus === 'testing' || (selectedMode === 'server' && !hasServerKey) || (selectedMode === 'client' && !clientApiKey)}
-            variant="outline"
-            size="sm"
-          >
-            {connectionStatus === 'testing' ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Testing Connection...
-              </>
-            ) : (
-              `Test ${selectedMode === 'server' ? 'Server' : 'Client'} Connection`
-            )}
-          </Button>
-        </div>
       </div>
 
       {/* Cost Estimate */}
