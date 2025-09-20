@@ -1,44 +1,35 @@
-/* Reset for scrolling issues */
-* {
-  /* Prevent any element from blocking scroll */
-  max-height: none !important;
+/* Prevent pull-to-refresh on mobile */
+html, body {
+  overscroll-behavior-y: contain;
 }
 
-/* Prevent pull-to-refresh on mobile */
+/* Base scrolling setup */
 html {
-  overscroll-behavior-y: contain;
-  /* Ensure html doesn't restrict height */
-  height: auto !important;
-  overflow: visible !important;
+  height: 100%;
 }
 
 body {
-  overscroll-behavior-y: contain;
   margin: 0;
   padding: 0;
-  /* Force scrolling */
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
+  min-height: 100%;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Remove ALL height constraints */
-  height: auto !important;
-  min-height: 100vh;
-  max-height: none !important;
-  /* Ensure body is not fixed */
-  position: relative !important;
 }
 
 #root {
-  /* Ensure root doesn't block scrolling */
-  overflow: visible !important;
   min-height: 100vh;
-  height: auto !important;
 }
 
-/* Force main content to be scrollable */
+/* Specific fix for welcome/setup screens */
+.min-h-screen {
+  min-height: 100vh;
+  height: auto;
+}
+
+/* Ensure main content area can scroll */
 main {
-  overflow: visible !important;
-  height: auto !important;
+  min-height: 100vh;
+  height: auto;
 }
 
 .logo {
