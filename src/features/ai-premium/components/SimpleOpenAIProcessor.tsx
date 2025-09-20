@@ -1,15 +1,13 @@
-// Simple OpenAI processor - clean implementation
+// Server-side AI processor - secure implementation
 import { useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Brain, Key, CheckCircle, Loader2 } from 'lucide-react';
+import { Brain, CheckCircle, Loader2, Shield } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService } from '../../../services/openai-service';
 
 export const SimpleOpenAIProcessor = () => {
   const { currentPresentation, updateSlideScript } = usePresentationStore();
-  const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState('');
@@ -19,7 +17,7 @@ export const SimpleOpenAIProcessor = () => {
   const slides = currentPresentation?.slides || [];
   const hasScript = Boolean(currentPresentation?.fullScript);
 
-  // Initialize OpenAI service (now uses server-side proxy)
+  // Initialize OpenAI service (server-side proxy)
   const ai = new OpenAIService({
     textModel: "gpt-4o",
     visionModel: "gpt-4o", 
@@ -27,36 +25,23 @@ export const SimpleOpenAIProcessor = () => {
   });
 
   const testConnection = async () => {
-    console.log('🔑 Frontend apiKey value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'EMPTY');
-    console.log('🔑 LocalStorage value:', localStorage.getItem('openai_api_key') ? `${localStorage.getItem('openai_api_key')?.substring(0, 10)}...` : 'EMPTY');
-    
-    if (!apiKey) {
-      alert('Please enter your OpenAI API key first');
-      return;
-    }
-
-    if (!apiKey.startsWith('sk-')) {
-      alert('⚠️ Invalid API key format. OpenAI keys start with "sk-"');
-      return;
-    }
-
     setConnectionStatus('testing');
     
     try {
+      // Test server-side proxy connection
       const response = await fetch('/api/openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey,
           model: "gpt-4o-mini",
-          max_completion_tokens: 10,
+          max_tokens: 10,
           messages: [{ role: 'user', content: 'Test connection' }]
         })
       });
       
       if (response.ok) {
         setConnectionStatus('connected');
-        alert('✅ OpenAI connection successful!');
+        alert('✅ Server-side OpenAI connection successful!');
       } else {
         setConnectionStatus('failed');
         alert('❌ OpenAI connection failed. Check your API key.');
@@ -77,9 +62,13 @@ export const SimpleOpenAIProcessor = () => {
     });
     
     if (connectionStatus !== 'connected') {
-      console.error('❌ Connection check failed');
-      alert('Please test your OpenAI connection first');
-      return;
+      console.log('🔄 Auto-testing server connection...');
+      await testConnection();
+      if (connectionStatus !== 'connected') {
+        console.error('❌ Connection check failed');
+        alert('Server connection failed. Please check your deployment.');
+        return;
+      }
     }
 
     if (!slides.length) {
@@ -217,47 +206,33 @@ Check your slides for the matched script sections and confidence ratings!`);
         </div>
       </div>
 
-      {/* API Key Setup */}
+      {/* Server-Side Security Status */}
       <div className="space-y-4 mb-6">
-        <div>
-          <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-2">
-            <Key className="inline h-4 w-4 mr-1" />
-            OpenAI API Key
-          </label>
-          <div className="flex gap-2">
-            <Input
-              id="api-key"
-              type="password"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => {
-                const newKey = e.target.value;
-                setApiKey(newKey);
-                localStorage.setItem('openai_api_key', newKey);
-                setConnectionStatus('unknown');
-              }}
-              className="flex-1"
-            />
+        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-green-800">Enterprise Security Enabled</span>
+          </div>
+          <p className="text-xs text-green-700">
+            API keys are stored securely server-side. No sensitive data exposed to browser.
+          </p>
+          <div className="flex gap-2 mt-3">
             <Button
               onClick={testConnection}
-              disabled={!apiKey || connectionStatus === 'testing'}
+              disabled={connectionStatus === 'testing'}
               variant="outline"
               size="sm"
             >
-              {connectionStatus === 'testing' ? 'Testing...' : 'Test'}
+              {connectionStatus === 'testing' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Testing Connection...
+                </>
+              ) : (
+                'Test Server Connection'
+              )}
             </Button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Get your API key at{' '}
-            <a 
-              href="https://platform.openai.com/api-keys" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline text-blue-600 hover:text-blue-800"
-            >
-              platform.openai.com
-            </a>
-          </p>
         </div>
       </div>
 
