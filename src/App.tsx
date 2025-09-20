@@ -135,17 +135,20 @@ export default function App() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      {setupComplete ? (
+                      {hasAIProcessing ? (
                         <>
                           <Check className="w-5 h-5 text-green-600" />
-                          Setup Complete
+                          Part 1 & 2 Complete
+                        </>
+                      ) : setupComplete ? (
+                        <>
+                          <Check className="w-5 h-5 text-blue-600" />
+                          Part 1 Complete
                         </>
                       ) : (
                         <>
                           <AlertCircle className="w-5 h-5 text-orange-600" />
-                          {currentPresentation?.slides.some(s => s.script?.trim()) ? 
-                            'Setup In Progress - Complete Step 2' : 
-                            'Setup In Progress'}
+                          Getting Started
                         </>
                       )}
                     </span>
@@ -160,40 +163,43 @@ export default function App() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    <div className="flex items-center gap-4 mt-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        {currentPresentation?.slides.length > 0 ? (
+                    <div className="space-y-3 mt-3">
+                      <div className="font-semibold text-sm text-gray-700">Part 1: Basic Setup</div>
+                      <div className="flex items-center gap-2 ml-4">
+                        {currentPresentation ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className="w-4 h-4 border-2 border-gray-300 rounded" />
                         )}
-                        <span className="text-sm">PDF Uploaded ({currentPresentation?.slides.length || 0} slides)</span>
+                        <span className="text-sm">PDF Slides ({currentPresentation?.slides.length || 0} uploaded)</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 ml-4">
                         {currentPresentation?.slides.some(s => s.script?.trim()) ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className="w-4 h-4 border-2 border-gray-300 rounded" />
                         )}
-                        <span className="text-sm">Scripts Added</span>
+                        <span className="text-sm">Presentation Script</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      
+                      <div className="font-semibold text-sm text-gray-700 mt-3">Part 2: AI Enhancement (Optional)</div>
+                      <div className="flex items-center gap-2 ml-4">
                         {hasAIProcessing ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className="w-4 h-4 border-2 border-gray-300 rounded" />
                         )}
                         <span className="text-sm">
-                          {hasAIProcessing ? 'AI Processing Complete' : 'AI Processing (Optional)'}
+                          {hasAIProcessing ? 'AI Analysis Complete' : 'Not processed yet'}
                         </span>
                       </div>
                     </div>
                   </CardDescription>
                 </CardHeader>
               </Card>
-              {/* Step 1: Slides and Script - Show upload button if no script */}
+              {/* Part 1: Slides and Script - Show upload button if no script */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">📁 Step 1: Content Setup</h3>
+                <h3 className="text-lg font-semibold">📁 Part 1: Basic Setup (PDF + Script)</h3>
                 
                 {/* Script Upload Button - Only show if no scripts exist */}
                 {!currentPresentation.slides.some(s => s.script?.trim()) && (
@@ -264,20 +270,9 @@ export default function App() {
                 </div>
               </div>
               
-              {/* Step 2: AI Processing */}
-              <div className="space-y-4 mt-8">
-                <h3 className="text-lg font-semibold">🤖 Step 2: AI Script Analysis</h3>
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle className="text-base">Process with AI Vision</CardTitle>
-                    <CardDescription>
-                      Analyze your slides and generate intelligent presenter guidance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <SimpleOpenAIProcessor />
-                  </CardContent>
-                </Card>
+              {/* Part 2: AI Processing - Directly embedded */}
+              <div className="mt-8">
+                <SimpleOpenAIProcessor />
               </div>
             </TabsContent>
             

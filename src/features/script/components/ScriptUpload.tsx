@@ -80,15 +80,15 @@ export function ScriptUpload({ onScriptUploaded, onNavigateToPractice }: ScriptU
     
     // Show success message
     toast({
-      title: "📝 Script Uploaded Successfully!",
-      description: "Your script has been added. Next step: Process with AI for enhanced practice mode.",
+      title: "✅ Part 1 Complete - Basic Setup Ready!",
+      description: "PDF slides and script loaded. You can practice now or enhance with AI (Part 2).",
       action: onNavigateToPractice ? (
         <Button 
           variant="outline" 
           size="sm"
           onClick={() => onNavigateToPractice()}
         >
-          Practice Now
+          Start Basic Practice
         </Button>
       ) : undefined
     });

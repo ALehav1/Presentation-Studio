@@ -16,7 +16,10 @@ export const SimpleOpenAIProcessor = () => {
   const [progress, setProgress] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [totalSteps] = useState(4);
-  const [processingComplete, setProcessingComplete] = useState(false);
+  // Check if AI processing has been completed by looking for guides
+  const processingComplete = currentPresentation?.slides.some(s => 
+    s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)
+  ) || false;
   
   // API Key management
   const [hasServerKey, setHasServerKey] = useState<boolean | null>(null);
@@ -402,12 +405,11 @@ Return JSON format:
         }
         
         setProgress('✅ Processing complete!');
-        setProcessingComplete(true);
         
         // Show success toast
         toast({
-          title: "🎉 AI Processing Complete!",
-          description: `Successfully analyzed ${slideAnalyses.length} slides and matched ${scriptMatches.matches.length} script sections. Practice mode is now enhanced!`,
+          title: "🎉 Part 2 Complete - AI Enhancement Ready!",
+          description: `Successfully analyzed ${slideAnalyses.length} slides and matched ${scriptMatches.matches.length} script sections. Your practice mode is now AI-enhanced!`,
         });
         
         // Auto-navigate to practice after 2 seconds
@@ -440,10 +442,10 @@ Return JSON format:
           </div>
           <div>
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              📋 Step 2: Process with AI Vision
+              🤖 Part 2: AI Enhancement (Optional)
             </h2>
             <p className="text-sm text-gray-600">
-              AI reads your slides and matches your script intelligently ($0.10)
+              Let AI analyze your slides and intelligently match scripts for enhanced practice (~$0.10)
             </p>
           </div>
         </div>
@@ -626,6 +628,31 @@ Return JSON format:
           </span>
         </div>
       </Button>
+
+      {/* Proceed to Practice Button - Shows after processing */}
+      {processingComplete && !processing && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 text-green-700">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-semibold">Part 2 Complete - AI Enhancement Active!</span>
+            </div>
+            <p className="text-sm text-green-600">
+              Your slides have been analyzed and scripts intelligently matched. Practice mode is now enhanced with AI guidance.
+            </p>
+            <Button
+              onClick={() => {
+                const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
+                practiceTab?.click();
+              }}
+              size="lg"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg"
+            >
+              🎯 Proceed to AI-Enhanced Practice
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
