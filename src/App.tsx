@@ -293,23 +293,35 @@ export default function App() {
 
       {/* Confirmation Dialog */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="text-red-600">⚠️ Clear All Data?</CardTitle>
-              <CardDescription>
-                This will permanently delete:
-                <ul className="list-disc list-inside mt-2 space-y-1">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          />
+          
+          {/* Dialog */}
+          <Card className="relative max-w-md w-full bg-white shadow-2xl border-0">
+            <CardHeader className="space-y-3">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <span className="text-red-500 text-2xl">⚠️</span>
+                Clear All Data?
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                <p className="font-medium mb-2">This action cannot be undone.</p>
+                <p className="text-sm">You will permanently delete:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-500">
                   <li>All uploaded slides ({currentPresentation?.slides.length || 0} slides)</li>
                   <li>All presentation scripts</li>
                   <li>Any AI processing results</li>
                 </ul>
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-3 justify-end">
+            <CardContent className="flex gap-3 justify-end pt-2">
               <Button
                 variant="outline"
                 onClick={() => setShowClearConfirm(false)}
+                className="min-w-[100px]"
               >
                 Cancel
               </Button>
@@ -320,8 +332,9 @@ export default function App() {
                   setShowClearConfirm(false);
                   setCurrentMode('setup');
                 }}
+                className="min-w-[100px]"
               >
-                Yes, Start Fresh
+                Clear All
               </Button>
             </CardContent>
           </Card>
