@@ -16,7 +16,7 @@ import { SimplePracticeView } from './features/practice/components/SimplePractic
 import './App.css';
 
 export function App() {
-  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB, setCurrentSlide, getTempUploadedScript } = usePresentationStore();
+  const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB, getTempUploadedScript } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
   const [hasAIProcessing, setHasAIProcessing] = useState(false);
