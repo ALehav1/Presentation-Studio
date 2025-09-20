@@ -126,8 +126,12 @@ export default function App() {
           >
             <ScriptFlow 
               onComplete={() => {
-                // Force a re-render to show the main setup
-                window.location.reload();
+                // Update state to trigger re-render
+                const { currentPresentation } = usePresentationStore.getState();
+                if (currentPresentation) {
+                  // Force state update to show main setup
+                  setSetupComplete(true);
+                }
               }}
             />
           </ErrorBoundary>

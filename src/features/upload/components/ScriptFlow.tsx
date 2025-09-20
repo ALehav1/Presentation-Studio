@@ -1,17 +1,31 @@
 import { ScriptInput } from './ScriptInput';
 import { Check } from 'lucide-react';
+import { usePresentationStore } from '../../../core/store/presentation';
+import { useToast } from '../../../hooks/use-toast';
 
 interface ScriptFlowProps {
   onComplete?: () => void;
 }
 
 export function ScriptFlow({ onComplete }: ScriptFlowProps) {
-  const handleScriptProvided = () => {
-    // Script is already stored in the store by ScriptInput
-    console.log('Script flow complete, navigating to setup...');
+  const { toast } = useToast();
+  
+  const handleScriptProvided = (script: string) => {
+    // Store script in Zustand store
+    const { setTempUploadedScript } = usePresentationStore.getState();
+    setTempUploadedScript(script);
+    console.log('Script provided and stored in store:', script.substring(0, 100) + '...');
+    
+    // Show success toast
+    toast({
+      title: "✅ Script Uploaded Successfully!",
+      description: "Your presentation is ready for setup.",
+    });
     
     // Call completion callback to navigate to main setup
-    onComplete?.();
+    setTimeout(() => {
+      onComplete?.();
+    }, 500); // Small delay to let user see the toast
   };
 
   return (
