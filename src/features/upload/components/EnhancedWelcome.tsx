@@ -17,7 +17,7 @@ export function EnhancedWelcome({ onScriptProvided }: EnhancedWelcomeProps) {
     setTempUploadedScript(script);
     console.log('Script provided and stored in store:', script.substring(0, 100) + '...');
     
-    // Reset to show upload after script is provided
+    // Show slides upload screen after script is provided
     setSelectedFlow('slides');
     
     // Call the parent callback if provided
@@ -25,6 +25,9 @@ export function EnhancedWelcome({ onScriptProvided }: EnhancedWelcomeProps) {
   };
 
   if (selectedFlow === 'slides') {
+    const { getTempUploadedScript } = usePresentationStore.getState();
+    const hasScript = !!getTempUploadedScript();
+    
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -36,11 +39,18 @@ export function EnhancedWelcome({ onScriptProvided }: EnhancedWelcomeProps) {
               ← Back to options
             </button>
           </div>
+          {hasScript && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-700">
+                ✅ Script loaded successfully! Now add your slides to complete Part 1.
+              </p>
+            </div>
+          )}
           <h3 className="text-xl font-medium text-gray-800 mb-2">
-            Upload Your Slides
+            {hasScript ? 'Step 2: Upload Your Slides' : 'Upload Your Slides'}
           </h3>
           <p className="text-gray-600 mb-6">
-            Upload your PDF presentation to get started with slide navigation and practice.
+            Upload your PDF presentation to {hasScript ? 'complete the setup' : 'get started with slide navigation and practice'}.
           </p>
         </div>
         <UploadZone />
