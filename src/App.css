@@ -1,35 +1,59 @@
-/* Prevent pull-to-refresh on mobile */
-html, body {
-  overscroll-behavior-y: contain;
-}
+/* ===== MOBILE SCROLLING FIX ===== */
 
-/* Base scrolling setup */
+/* 1. Reset the document flow to natural behavior */
 html {
-  height: 100%;
+  /* Remove fixed height constraint */
+  height: auto;
+  overflow: visible;
 }
 
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
-  overflow-y: auto;
+  /* Let body expand naturally with content */
+  min-height: 100vh; /* Changed from 100% to 100vh */
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-y: visible; /* Allow vertical scroll */
+  /* iOS smooth scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
+/* 2. Prevent pull-to-refresh without breaking scroll */
+/* Only apply to the root container, not html/body */
 #root {
   min-height: 100vh;
+  /* This is the key: contain overscroll on the app container only */
+  overscroll-behavior-y: contain;
 }
 
-/* Specific fix for welcome/setup screens */
+/* 3. Fix the main content area */
+main {
+  /* Remove the conflicting min-height */
+  /* Let content determine height naturally */
+  height: auto;
+}
+
+/* 4. Ensure the app container allows scrolling */
 .min-h-screen {
   min-height: 100vh;
-  height: auto;
+  /* Critical: don't set height, only min-height */
+  height: auto !important;
 }
 
-/* Ensure main content area can scroll */
-main {
-  min-height: 100vh;
-  height: auto;
+/* 5. Fix for sticky header on mobile */
+header.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* Ensure header doesn't interfere with scroll */
+  will-change: transform;
+}
+
+/* 6. Practice mode specific fixes */
+.h-screen {
+  /* Use dynamic viewport height for mobile */
+  height: 100vh;
+  height: 100dvh; /* Fallback for newer browsers */
 }
 
 .logo {

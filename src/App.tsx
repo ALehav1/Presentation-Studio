@@ -71,6 +71,19 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    // Development-only scroll diagnostics
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Scroll diagnostics:', {
+        bodyScrollable: document.body.scrollHeight > window.innerHeight,
+        documentHeight: document.documentElement.scrollHeight,
+        viewportHeight: window.innerHeight,
+        bodyHeight: document.body.scrollHeight,
+        htmlHeight: document.documentElement.clientHeight
+      });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Modern glass morphism header */}
