@@ -1,5 +1,4 @@
 // src/services/openai-service.ts
-import OpenAI from "openai";
 
 export type SlideAnalysis = {
   allText: string;
@@ -42,48 +41,297 @@ export type Coaching = {
 export type CoachingResponse = { success: true; coaching: Coaching } | { success: false; error: string };
 
 type OpenAIServiceOpts = {
-  apiKey?: string;            // Optional; defaults to process.env.OPENAI_API_KEY
-  visionModel?: string;       // default: "gpt-4o"
-  textModel?: string;         // default: "gpt-4o"
-  hardTokenCap?: number;      // default: 4096 output tokens
-  temperature?: number;       // default: 0.2
+  visionModel?: string;
+  textModel?: string;
+  hardTokenCap?: number;
+  temperature?: number;
 };
 
 export class OpenAIService {
-  private client: OpenAI | null;
   private visionModel: string;
   private textModel: string;
   private hardTokenCap: number;
   private temperature: number;
 
   constructor(opts: OpenAIServiceOpts = {}) {
-    const apiKey = opts.apiKey || import.meta.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    
-    // Graceful handling for missing API key
-    if (!apiKey) {
-      console.warn('⚠️ OpenAI API key not configured. AI features will be disabled.');
-      // No client when API key is missing
-      this.client = null;
-    } else {
-      this.client = new OpenAI({ 
-        apiKey,
-        dangerouslyAllowBrowser: true 
-      });
-    }
-    
-    this.visionModel = opts.visionModel || "gpt-4o";    // Current best vision model
+    this.visionModel = opts.visionModel || "gpt-4o";
     this.textModel = opts.textModel || "gpt-4o";
-    this.hardTokenCap = opts.hardTokenCap ?? 4096;     // give GPT-5 more room to reason
+    this.hardTokenCap = opts.hardTokenCap ?? 4096;
     this.temperature = opts.temperature ?? 0.2;
   }
 
+  private async callAPI(messages: any[], model?: string, maxTokens?: number): Promise<any> {
+    const response = await fetch('/api/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || this.textModel,
+        messages,
+        max_tokens: maxTokens || this.hardTokenCap,
+        temperature: this.temperature,
+      })
+    });
 
-  // --- 1) Vision: analyze one slide image (base64 PNG/JPEG) ---
-  async analyzeSlideWithVision(imageBase64DataUrl: string, slideNumber: number): Promise<SlideAnalysisResponse> {
-    if (!this.client) {
-      return { success: false, error: 'OpenAI API key not configured. Please add your API key to enable AI features.' };
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `API call failed: ${response.status}`);
     }
-    const tryOnce = async (model: string) => this.client.chat.completions.create({
+
+    return response.json();
+  }
+
+  async analyzeSlideWithVision(imageBase64DataUrl: string, slideNumber: number): Promise<SlideAnalysisResponse> {
+    try {
+      const messages = [{
+        role: "user" as const,
+        content: [
+          { 
+            type: "text" as const, 
+            text: `Analyze slide ${slideNumber} for OCR text, topics, visuals. Return JSON with this shape:
+{
+  "allText": "string",
+  "mainTopic": "string", 
+  "keyPoints": ["string"],
+  "visualElements": ["string"],
+  "suggestedTalkingPoints": ["string"],
+  "emotionalTone": "professional|casual|inspirational",
+  "complexity": "basic|moderate|advanced",
+  "recommendedDuration": number
+}`
+          },
+          { 
+            type: "image_url" as const, 
+            image_url: { 
+              url: imageBase64DataUrl,
+              detail: "high" as const
+            } 
+          }
+        ]
+      }];
+
+      const result = await this.callAPI(messages, this.visionModel);
+      const content = result.choices[0]?.message?.content || "{}";
+      const parsed = this.safeJson(content);
+      
+      if (!parsed?.allText) {
+        throw new Error("Malformed analysis response");
+      }
+      
+      return { success: true, analysis: parsed as SlideAnalysis };
+    } catch (error: unknown) {
+      return { 
+        success: false, 
+        error: `Vision analysis failed (slide ${slideNumber}): ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
+  }
+
+  async summarizeSlideForMatching(slideNumber: number, analysis: SlideAnalysis): Promise<{
+    slideNumber: number;
+    summary: string;
+    tags: string[];
+  }> {
+    try {
+      const messages = [{
+        role: "user" as const,
+        content: `Create a compact slide summary for semantic alignment.
+Return ONLY JSON with: slideNumber, summary (~80 tokens), tags (3-5 nouns).
+
+Slide ${slideNumber} analysis:
+${JSON.stringify(analysis)}
+
+Return JSON:
+{
+  "slideNumber": ${slideNumber},
+  "summary": "string",
+  "tags": ["string"]
+}`
+      }];
+
+      const result = await this.callAPI(messages, this.textModel, 256);
+      const content = result.choices[0]?.message?.content || "{}";
+      const parsed = this.safeJson(content);
+      
+      if (!parsed?.summary || !Array.isArray(parsed?.tags)) {
+        throw new Error("Malformed summary response");
+      }
+      
+      return { 
+        slideNumber, 
+        summary: parsed.summary as string, 
+        tags: parsed.tags as string[] 
+      };
+    } catch {
+      // Fallback summary
+      const fallbackSummary = `${analysis.mainTopic}. Points: ${analysis.keyPoints.slice(0, 3).join("; ")}. Visuals: ${analysis.visualElements.slice(0, 2).join(", ")}.`;
+      const fallbackTags = [
+        ...(analysis.mainTopic ? [analysis.mainTopic] : []),
+        ...analysis.keyPoints.slice(0, 2)
+      ].map(s => s.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim()).filter(Boolean).slice(0, 5);
+      
+      return { slideNumber, summary: fallbackSummary, tags: fallbackTags };
+    }
+  }
+
+  async summarizeAllSlidesForMatching(analyses: SlideAnalysis[], concurrency = 3) {
+    const tasks = analyses.map((a, i) => () => this.summarizeSlideForMatching(i + 1, a));
+    const results: Awaited<ReturnType<OpenAIService["summarizeSlideForMatching"]>>[] = [];
+    
+    for (let i = 0; i < tasks.length; i += concurrency) {
+      const chunk = tasks.slice(i, i + concurrency);
+      const batch = await Promise.all(chunk.map(fn => fn()));
+      results.push(...batch);
+    }
+    
+    return results;
+  }
+
+  async matchScriptToSlidesFromSummaries(
+    slideSummaries: Array<{ slideNumber: number; summary: string; tags: string[] }>,
+    fullScript: string
+  ): Promise<ScriptMatchingResponse> {
+    try {
+      const messages = [
+        {
+          role: "system" as const,
+          content: `You align a long presentation script to slides using compact slide summaries + tags.
+Requirements:
+- Segment the script into coherent slide-sized sections (respect topic boundaries; do not evenly split).
+- Map each section to one slideNumber by best semantic fit.
+- Include confidence (0-100), a short reasoning, and keyAlignment terms.
+- Return ONLY JSON in the required shape.`
+        },
+        {
+          role: "user" as const,
+          content: `Full Script:
+${fullScript}
+
+Slide Summaries:
+${JSON.stringify(slideSummaries, null, 2)}
+
+Return JSON:
+{
+  "matches": [
+    {
+      "slideNumber": 1,
+      "scriptSection": "string",
+      "confidence": 0,
+      "reasoning": "string", 
+      "keyAlignment": ["string"]
+    }
+  ]
+}`
+        }
+      ];
+
+      const result = await this.callAPI(messages, this.textModel);
+      const content = result.choices[0]?.message?.content || "{}";
+      const parsed = this.safeJson(content);
+      
+      if (!parsed?.matches || !Array.isArray(parsed.matches)) {
+        throw new Error("Malformed matches response");
+      }
+      
+      return { success: true, matches: parsed.matches as ScriptMatch[] };
+    } catch (err: unknown) {
+      return { 
+        success: false, 
+        error: `Script matching failed: ${err instanceof Error ? err.message : String(err)}` 
+      };
+    }
+  }
+
+  async generateExpertCoaching(slideAnalysis: SlideAnalysis, scriptSection: string): Promise<CoachingResponse> {
+    try {
+      const messages = [
+        {
+          role: "system" as const,
+          content: `You are an executive presentation coach. You give precise, practical coaching with timing. Return JSON only.`
+        },
+        {
+          role: "user" as const,
+          content: `Slide Analysis:
+${JSON.stringify(slideAnalysis)}
+
+Script Section:
+${scriptSection}
+
+Return JSON exactly as:
+{
+  "openingStrategy": "string",
+  "keyEmphasisPoints": ["string"],
+  "bodyLanguageTips": ["string"],
+  "voiceModulation": ["string"],
+  "audienceEngagement": ["string"],
+  "transitionToNext": "string",
+  "timingRecommendation": "string",
+  "potentialQuestions": ["string"],
+  "commonMistakes": ["string"],
+  "energyLevel": "low|medium|high"
+}`
+        }
+      ];
+
+      const result = await this.callAPI(messages, this.textModel);
+      const content = result.choices[0]?.message?.content || "{}";
+      const parsed = this.safeJson(content);
+      
+      if (!parsed?.openingStrategy) {
+        throw new Error("Malformed coaching response");
+      }
+      
+      return { success: true, coaching: parsed as Coaching };
+    } catch (err: unknown) {
+      return { 
+        success: false, 
+        error: `Coaching generation failed: ${err instanceof Error ? err.message : String(err)}` 
+      };
+    }
+  }
+
+  private safeJson(maybeJson: string) {
+    const trimmed = maybeJson.trim();
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("No JSON object found");
+    return JSON.parse(trimmed.slice(start, end + 1));
+  }
+}
+          messages: [{
+            role: "user",
+            content: [
+              { 
+                type: "text", 
+                text: `Analyze slide ${slideNumber} for OCR text, topics, visuals. Return JSON with this shape:
+{
+  "allText": "string",
+  "mainTopic": "string", 
+  "keyPoints": ["string"],
+  "visualElements": ["string"],
+  "suggestedTalkingPoints": ["string"],
+  "emotionalTone": "professional|casual|inspirational",
+  "complexity": "basic|moderate|advanced",
+  "recommendedDuration": number
+}`
+              },
+              { 
+                type: "image_url", 
+                image_url: { 
+                  url: imageBase64DataUrl,
+                  detail: "high"
+                } 
+              }
+            ]
+          }]
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      
+      return response.json();
+    };
       model,
       temperature: this.temperature,
       max_completion_tokens: this.hardTokenCap,
