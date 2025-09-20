@@ -1,8 +1,9 @@
 // Server-side AI processor - enterprise secure implementation
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Brain, CheckCircle, Loader2, Shield, Key } from 'lucide-react';
+import { Input } from '../../../components/ui/input';
+import { Brain, CheckCircle, Loader2, Shield, Key, Server } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService } from '../../../services/openai-service';
 
@@ -13,6 +14,11 @@ export const SimpleOpenAIProcessor = () => {
   const [progress, setProgress] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [totalSteps] = useState(4);
+  
+  // API Key management
+  const [hasServerKey, setHasServerKey] = useState<boolean | null>(null);
+  const [clientApiKey, setClientApiKey] = useState(localStorage.getItem('openai_api_key') || '');
+  const [selectedMode, setSelectedMode] = useState<'server' | 'client'>('server');
 
   const slides = currentPresentation?.slides || [];
   const hasScript = Boolean(currentPresentation?.fullScript || tempUploadedScript);
@@ -24,6 +30,29 @@ export const SimpleOpenAIProcessor = () => {
     visionModel: "gpt-4o", 
     hardTokenCap: 4096,
   });
+
+  // Check server key availability on mount
+  useEffect(() => {
+    const checkServerKey = async () => {
+      try {
+        const response = await fetch('/api/check-key');
+        const data = await response.json();
+        setHasServerKey(data.hasServerKey);
+        
+        // Auto-select client mode if no server key and client key exists
+        if (!data.hasServerKey && clientApiKey) {
+          setSelectedMode('client');
+        }
+        
+        console.log('🔑 Server key available:', data.hasServerKey);
+      } catch (error) {
+        console.error('Failed to check server key:', error);
+        setHasServerKey(false);
+      }
+    };
+    
+    checkServerKey();
+  }, [clientApiKey]);
 
   const testConnection = async () => {
     setConnectionStatus('testing');
@@ -68,27 +97,42 @@ export const SimpleOpenAIProcessor = () => {
       console.log('🔄 Auto-testing server connection...');
       try {
         setConnectionStatus('testing');
-        
-        // Test server-side proxy connection
-        const response = await fetch('/api/openai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        try {
+          // Build request with appropriate API key
+          const requestBody: { model: string; max_tokens: number; messages: Array<{role: string; content: string}>; apiKey?: string } = {
             model: "gpt-4o-mini",
             max_tokens: 10,
             messages: [{ role: 'user', content: 'Test connection' }]
-          })
-        });
-        
-        if (!response.ok) {
-          console.error('❌ Connection check failed');
-          alert('Server connection failed. Please check your deployment.');
+          };
+          
+          // Add client API key if using client mode
+          if (selectedMode === 'client' && clientApiKey) {
+            requestBody.apiKey = clientApiKey;
+          }
+          
+          const response = await fetch('/api/openai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ Connection check failed:', errorData);
+            alert(`Connection failed: ${errorData.error || 'Unknown error'}`);
+            setConnectionStatus('failed');
+            return;
+          }
+          
+          setConnectionStatus('connected');
+          const modeText = selectedMode === 'client' ? 'Client-side' : 'Server-side';
+          console.log(`✅ ${modeText} connection successful`);
+        } catch (error) {
+          console.error('❌ Connection error:', error);
+          alert('Connection error. Please check your internet connection.');
           setConnectionStatus('failed');
           return;
         }
-        
-        setConnectionStatus('connected');
-        console.log('✅ Server connection successful');
       } catch (error) {
         console.error('❌ Connection error:', error);
         alert('Connection error. Please check your internet connection.');
@@ -235,33 +279,107 @@ Check your slides for the matched script sections and confidence ratings!`);
         </div>
       </div>
 
-      {/* Server-Side Security Status */}
+      {/* API Key Configuration */}
       <div className="space-y-4 mb-6">
-        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-medium text-green-800">Enterprise Security Enabled</span>
+        <h3 className="text-lg font-semibold text-gray-800">🤖 OpenAI API Configuration</h3>
+        
+        {/* Server-side Option */}
+        <div className={`p-4 rounded-lg border ${!hasServerKey ? 'border-gray-300 bg-gray-50' : selectedMode === 'server' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+          <div className="flex items-start gap-3">
+            <input
+              type="radio"
+              name="apiMode"
+              value="server"
+              checked={selectedMode === 'server'}
+              disabled={!hasServerKey}
+              onChange={(e) => setSelectedMode(e.target.value as 'server')}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Server className={`h-4 w-4 ${!hasServerKey ? 'text-gray-400' : 'text-green-600'}`} />
+                <span className={`font-medium text-sm ${!hasServerKey ? 'text-gray-500' : 'text-green-800'}`}>
+                  Server-side Processing (Enterprise)
+                </span>
+              </div>
+              <p className={`text-xs ${!hasServerKey ? 'text-gray-500' : 'text-green-700'}`}>
+                {hasServerKey 
+                  ? '✓ Secure server-side API key configured'
+                  : '⚠️ No server key configured - option unavailable'
+                }
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-green-700">
-            API keys are stored securely server-side. No sensitive data exposed to browser.
-          </p>
-          <div className="flex gap-2 mt-3">
-            <Button
-              onClick={testConnection}
-              disabled={connectionStatus === 'testing'}
-              variant="outline"
-              size="sm"
-            >
-              {connectionStatus === 'testing' ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Testing Connection...
-                </>
-              ) : (
-                'Test Server Connection'
+        </div>
+
+        {/* Client-side Option */}
+        <div className={`p-4 rounded-lg border ${selectedMode === 'client' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+          <div className="flex items-start gap-3">
+            <input
+              type="radio"
+              name="apiMode" 
+              value="client"
+              checked={selectedMode === 'client'}
+              onChange={(e) => setSelectedMode(e.target.value as 'client')}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Key className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-sm text-blue-800">Client-side Processing (Personal)</span>
+              </div>
+              <p className="text-xs text-blue-700 mb-3">
+                Use your own OpenAI API key (you pay directly)
+              </p>
+              
+              {selectedMode === 'client' && (
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    placeholder="sk-..."
+                    value={clientApiKey}
+                    onChange={(e) => {
+                      const newKey = e.target.value;
+                      setClientApiKey(newKey);
+                      localStorage.setItem('openai_api_key', newKey);
+                      setConnectionStatus('unknown');
+                    }}
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-blue-600">
+                    Get your key at{' '}
+                    <a 
+                      href="https://platform.openai.com/api-keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline hover:text-blue-800"
+                    >
+                      platform.openai.com
+                    </a>
+                  </p>
+                </div>
               )}
-            </Button>
+            </div>
           </div>
+        </div>
+
+        {/* Test Connection */}
+        <div className="flex justify-center">
+          <Button
+            onClick={testConnection}
+            disabled={connectionStatus === 'testing' || (selectedMode === 'server' && !hasServerKey) || (selectedMode === 'client' && !clientApiKey)}
+            variant="outline"
+            size="sm"
+          >
+            {connectionStatus === 'testing' ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Testing Connection...
+              </>
+            ) : (
+              `Test ${selectedMode === 'server' ? 'Server' : 'Client'} Connection`
+            )}
+          </Button>
         </div>
       </div>
 
