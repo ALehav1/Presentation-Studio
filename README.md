@@ -420,6 +420,10 @@ src/
 - Presenter guides are only available through AI processing
 - The three-path preparation UI (Quick/Manual/AI) is functional but limited in the manual path
 
+### TODO - Critical Bugs
+1. **"Go to Practice" button after AI processing doesn't work** - The navigation function is not being passed properly through the component chain
+2. **Complete conversion of console.log to debug utility** - Many console.log statements remain in SimpleOpenAIProcessor
+
 ## 🎯 Usage
 
 ### 🧠 **NEW: Flexible Preparation Workflow**

@@ -615,11 +615,17 @@ Return JSON format:
       {/* Process Button */}
       <Button
         onClick={processingComplete ? () => {
+          debug.log('Go to Practice clicked. onNavigateToPractice:', !!onNavigateToPractice);
           if (onNavigateToPractice) {
             onNavigateToPractice();
           } else {
+            debug.warn('No navigation function provided, trying direct tab click');
             const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
-            practiceTab?.click();
+            if (practiceTab) {
+              practiceTab.click();
+            } else {
+              debug.error('Could not find practice tab', new Error('Practice tab not found'));
+            }
           }
         } : handleProcess}
         disabled={processing || (!processingComplete && (connectionStatus !== 'connected' || !currentPresentation?.slides.length || !activeScript))}
