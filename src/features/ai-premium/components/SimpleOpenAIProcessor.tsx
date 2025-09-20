@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Brain, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { Brain, CheckCircle, Loader2, Shield, Key } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService } from '../../../services/openai-service';
 
@@ -63,10 +63,33 @@ export const SimpleOpenAIProcessor = () => {
     
     if (connectionStatus !== 'connected') {
       console.log('🔄 Auto-testing server connection...');
-      await testConnection();
-      if (connectionStatus !== 'connected') {
-        console.error('❌ Connection check failed');
-        alert('Server connection failed. Please check your deployment.');
+      try {
+        setConnectionStatus('testing');
+        
+        // Test server-side proxy connection
+        const response = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Test connection' }]
+          })
+        });
+        
+        if (!response.ok) {
+          console.error('❌ Connection check failed');
+          alert('Server connection failed. Please check your deployment.');
+          setConnectionStatus('failed');
+          return;
+        }
+        
+        setConnectionStatus('connected');
+        console.log('✅ Server connection successful');
+      } catch (error) {
+        console.error('❌ Connection error:', error);
+        alert('Connection error. Please check your internet connection.');
+        setConnectionStatus('failed');
         return;
       }
     }
