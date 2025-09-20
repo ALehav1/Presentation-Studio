@@ -19,6 +19,7 @@ export default function App() {
   const { currentPresentation, clearPresentation, uploadStatus, currentSlideIndex, loadImagesFromIndexedDB } = usePresentationStore();
   const [currentMode, setCurrentMode] = useState<'setup' | 'practice'>('setup');
   const [setupComplete, setSetupComplete] = useState(false);
+  const [hasAIProcessing, setHasAIProcessing] = useState(false);
   
   // Load images from IndexedDB when app starts with a persisted presentation  
   useEffect(() => {
@@ -41,8 +42,9 @@ export default function App() {
       const hasAIGuides = currentPresentation.slides.every(s => 
         s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)
       );
-      // Only mark complete if BOTH scripts AND actual AI guides exist
-      setSetupComplete(hasScripts && hasAIGuides);
+      // Setup is complete when we have scripts (AI is optional enhancement)
+      setSetupComplete(hasScripts);
+      setHasAIProcessing(hasAIGuides);
     }
   }, [currentPresentation]);
 
@@ -115,9 +117,12 @@ export default function App() {
                   className="data-[state=active]:bg-white relative"
                   disabled={!setupComplete}
                 >
-                  <span className="mr-2">🎤</span> Practice
+                  <span className="mr-2">🎤</span> 
+                  {hasAIProcessing ? 'AI Practice' : 'Practice'}
                   {setupComplete && (
-                    <Check className="w-3 h-3 ml-1 text-green-600" />
+                    <Badge variant={hasAIProcessing ? "default" : "secondary"} className="ml-2 text-xs">
+                      {hasAIProcessing ? 'Enhanced' : 'Basic'}
+                    </Badge>
                   )}
                 </TabsTrigger>
               </TabsList>
@@ -173,12 +178,14 @@ export default function App() {
                         <span className="text-sm">Scripts Added</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {currentPresentation?.slides.every(s => s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)) ? (
+                        {hasAIProcessing ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className="w-4 h-4 border-2 border-gray-300 rounded" />
                         )}
-                        <span className="text-sm">AI Processing Complete</span>
+                        <span className="text-sm">
+                          {hasAIProcessing ? 'AI Processing Complete' : 'AI Processing (Optional)'}
+                        </span>
                       </div>
                     </div>
                   </CardDescription>
