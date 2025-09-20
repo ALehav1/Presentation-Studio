@@ -37,20 +37,12 @@ export function PreparationOptions() {
   
   // Show two simple options
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-4 sm:px-0">
       <h3 className="text-lg font-semibold text-center">What would you like to do?</h3>
       
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
         {/* Practice Now Option */}
-        <Card 
-          className="cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
-          onClick={() => {
-            // Navigate directly to practice tab
-            const tabs = document.querySelector('[role="tablist"]');
-            const practiceTab = tabs?.querySelector('[value="practice"]') as HTMLButtonElement;
-            practiceTab?.click();
-          }}
-        >
+        <Card className="hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="p-3 bg-blue-100 rounded-full">
@@ -61,7 +53,15 @@ export function PreparationOptions() {
                 Start practicing immediately with your full script
               </p>
               <Badge variant="secondary">Basic Mode</Badge>
-              <Button className="mt-4 w-full">
+              <Button 
+                className="mt-4 w-full min-h-[44px]"
+                onClick={() => {
+                  // Navigate directly to practice tab
+                  const tabs = document.querySelector('[role="tablist"]');
+                  const practiceTab = tabs?.querySelector('[value="practice"]') as HTMLButtonElement;
+                  practiceTab?.click();
+                }}
+              >
                 <ArrowRight className="w-4 h-4 mr-2" />
                 Start Practice
               </Button>
@@ -70,10 +70,7 @@ export function PreparationOptions() {
         </Card>
         
         {/* AI Enhancement Option */}
-        <Card 
-          className="cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
-          onClick={() => setShowAI(true)}
-        >
+        <Card className="hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="p-3 bg-purple-100 rounded-full">
@@ -84,7 +81,11 @@ export function PreparationOptions() {
                 Enhance your practice with AI-generated guides
               </p>
               <Badge variant="default" className="bg-purple-600">Enhanced Mode</Badge>
-              <Button className="mt-4 w-full" variant="outline">
+              <Button 
+                className="mt-4 w-full min-h-[44px]" 
+                variant="outline"
+                onClick={() => setShowAI(true)}
+              >
                 <ArrowRight className="w-4 h-4 mr-2" />
                 Setup AI
               </Button>
