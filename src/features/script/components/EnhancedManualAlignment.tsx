@@ -7,12 +7,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import { usePresentationStore } from '../../../core/store/presentation';
 import { Scissors, Save, RotateCcw, CheckCircle, AlertCircle, Lightbulb, FileText } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
-import { ContentGuide } from '../../../core/types/presentation';
+import { ContentGuide } from '../../practice/utils/script-processor';
+
+// Custom guide structure for manual creation
+interface ManualGuide {
+  keyPoints: string[];
+  tips: string[];
+  transitions: {
+    entry: string;
+    exit: string;
+  };
+  timing: {
+    suggested: number;
+    minimum: number;
+    maximum: number;
+  };
+}
 
 interface SlideContent {
   slideIndex: number;
   script: string;
-  guide: ContentGuide;
+  guide: ManualGuide;
 }
 
 export function EnhancedManualAlignment() {

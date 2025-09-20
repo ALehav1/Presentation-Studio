@@ -38,14 +38,15 @@
 
 ### 🛡️ DUAL-MODE ARCHITECTURE
 
-✅ **Server-side Mode (Enterprise)**: Secure proxy keeps API keys on server  
-✅ **Client-side Mode (Personal)**: Direct OpenAI integration with your own key  
-✅ **Auto-Detection**: Seamlessly switches between modes based on configuration  
-✅ **Cost Control**: ~$0.10-0.30 per presentation with transparent pricing  
-✅ **No Lock-in**: Use enterprise servers or bring your own API key  
+✅ **Server-side Mode (Default)**: API key stored securely on server  
+✅ **Client-side Mode (Optional)**: Bring your own OpenAI key if no server key exists  
+✅ **Auto-Detection**: Automatically uses server key when available  
+✅ **Zero Configuration**: Works out-of-the-box for shared deployments  
+✅ **Flexible Billing**: Server pays (enterprise) or user pays (personal)  
 
-**Enterprise Teams:** Deploy with server key → Users pay nothing, maximum security  
-**Individual Users:** Use personal API key → Direct OpenAI billing, full control
+**Shared Deployments:** Server has API key → Users process for free  
+**Personal Use:** No server key → Users can optionally add their own  
+**Cost:** Free (server mode) or ~$0.10-0.30 per presentation (client mode)
 
 ### 🚀 **AI-POWERED FEATURES**
 
@@ -430,13 +431,15 @@ src/
 - Visual grid shows script coverage per slide
 
 **Option 3: AI Enhancement** 🧠
-- **Enter your OpenAI API key for processing**
+- **Automatic mode detection**: Uses server key if available, or prompts for personal key
 - **GPT-4 Vision** reads each slide: text, charts, diagrams, topics
 - **Semantic script matching** aligns content intelligently (not word count!)
 - **Confidence scoring** shows match quality with detailed reasoning
 - **AI-generated guides** with presenter tips and transitions
 - **Toast notification**: "🎉 OpenAI processing complete! Average confidence: 87%"
-- **💰 Cost**: ~$0.10-0.30 per presentation using your own OpenAI API key
+- **💰 Cost**: 
+  - **Server mode**: Free for users (enterprise deployment)
+  - **Client mode**: ~$0.10-0.30 per presentation (personal API key)
 
 **🎯 Practice Phase** ✅ **Direct Manipulation Revolution:**
 - **No confusing dialogs** - see all slides and scripts in one view
