@@ -23,7 +23,9 @@ export default function App() {
   // Load images from IndexedDB when app starts with a persisted presentation  
   useEffect(() => {
     if (currentPresentation && currentPresentation.slides.some(slide => !slide.imageUrl || slide.imageUrl.trim() === '')) {
-      console.log('📷 Loading images from IndexedDB for persisted presentation...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📷 Loading images from IndexedDB for persisted presentation...');
+      }
       loadImagesFromIndexedDB();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

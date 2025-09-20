@@ -30,6 +30,15 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
     updateSlideGuide
   } = usePresentationStore();
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🎙️ Setting up practice view with:', {
+      slideCount: currentPresentation?.slides.length,
+      currentSlide: currentSlideIndex,
+      hasScript: !!currentPresentation?.slides[currentSlideIndex]?.script,
+      scriptLength: currentPresentation?.slides[currentSlideIndex]?.script?.length
+    });
+  }
+
   const [showScript, setShowScript] = useState(true);
   const [showGuide, setShowGuide] = useState(true);
   const [contentGuide, setContentGuide] = useState<ContentGuide | null>(null);
@@ -650,7 +659,7 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
             <button
               key={index}
               onClick={() => handleSlideSelect(index)}
-              className={`min-w-[24px] min-h-[24px] w-6 h-6 rounded-full transition-colors flex items-center justify-center text-xs ${
+              className={`min-w-[48px] min-h-[48px] w-12 h-12 rounded-full transition-colors flex items-center justify-center text-sm ${
                 index === currentSlideIndex 
                   ? 'bg-blue-500 text-white font-semibold' 
                   : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
