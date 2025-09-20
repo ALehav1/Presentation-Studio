@@ -210,13 +210,17 @@ export const usePresentationStore = create<PresentationState>()(
       },
       
       nextSlide: () => {
-        const { currentSlideIndex, setCurrentSlide } = get();
-        setCurrentSlide(currentSlideIndex + 1);
+        const { currentSlideIndex, currentPresentation, setCurrentSlide } = get();
+        if (currentPresentation && currentSlideIndex < currentPresentation.slides.length - 1) {
+          setCurrentSlide(currentSlideIndex + 1);
+        }
       },
       
       previousSlide: () => {
         const { currentSlideIndex, setCurrentSlide } = get();
-        setCurrentSlide(currentSlideIndex - 1);
+        if (currentSlideIndex > 0) {
+          setCurrentSlide(currentSlideIndex - 1);
+        }
       },
       
       // Upload status management
