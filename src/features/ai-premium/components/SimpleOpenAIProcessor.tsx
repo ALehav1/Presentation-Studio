@@ -403,16 +403,86 @@ Return JSON format:
         setCurrentStep(3);
         setProgress('💾 Saving matched script sections...');
         
+        // Track which slides got matched
+        const matchedSlideNumbers = new Set<number>();
+        
         // Apply the matched scripts to slides
         scriptMatches.matches.forEach((match: ScriptMatch) => {
           const slide = slides[match.slideNumber - 1];
           if (slide) {
             console.log(`📝 Updating slide ${match.slideNumber} (${slide.id}) with script:`, match.scriptSection.substring(0, 100) + '...');
             updateSlideScript(slide.id, match.scriptSection);
+            matchedSlideNumbers.add(match.slideNumber);
           } else {
             console.error(`❌ Could not find slide ${match.slideNumber} in slides array`);
           }
         });
+
+        // STEP 3.5: Handle unmatched slides
+        const unmatchedSlides = slides.filter((_, index) => !matchedSlideNumbers.has(index + 1));
+        if (unmatchedSlides.length > 0) {
+          debug.info(`Found ${unmatchedSlides.length} unmatched slides, attempting to find content...`);
+          setProgress(`🔍 Finding content for ${unmatchedSlides.length} unmatched slides...`);
+          
+          // Process each unmatched slide
+          for (const unmatchedSlide of unmatchedSlides) {
+            const slideIndex = slides.indexOf(unmatchedSlide);
+            const slideNumber = slideIndex + 1;
+            const slideAnalysis = slideAnalyses[slideIndex];
+            
+            if (slideAnalysis) {
+              debug.log(`Processing unmatched slide ${slideNumber}: ${slideAnalysis.mainTopic}`);
+              
+              // Ask AI to find or generate content for this specific slide
+              const messages = [
+                {
+                  role: "system",
+                  content: `You are helping match presentation content. A slide was not matched to the script in the first pass. 
+Either find the most relevant section from the script OR generate appropriate talking points if no match exists.
+Be helpful and ensure the presenter has something meaningful to say.`
+                },
+                {
+                  role: "user",
+                  content: `Slide ${slideNumber} Content:
+Title: ${slideAnalysis.mainTopic}
+Key Points: ${slideAnalysis.keyPoints.join(', ')}
+Visual Elements: ${slideAnalysis.visualElements.join(', ')}
+
+Full Script:
+${activeScript}
+
+Please provide either:
+1. The most relevant section from the script (even if not perfect)
+2. OR suggested talking points if no relevant section exists
+
+Return just the text content for the presenter to say.`
+                }
+              ];
+              
+              try {
+                const result = selectedMode === 'client' && clientApiKey
+                  ? await callOpenAIDirectly(messages, 500)
+                  : await fetch('/api/openai', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages,
+                        max_tokens: 500
+                      })
+                    }).then(r => r.json());
+                
+                const content = result.choices[0]?.message?.content || '';
+                if (content) {
+                  debug.log(`✅ Found content for slide ${slideNumber}`);
+                  updateSlideScript(unmatchedSlide.id, content);
+                }
+              } catch (error) {
+                debug.error(`Failed to find content for slide ${slideNumber}`, error);
+              }
+            }
+          }
+        }
 
         // Generate AI guides for practice mode
         setCurrentStep(4);
