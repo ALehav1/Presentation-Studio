@@ -50,17 +50,27 @@ type OpenAIServiceOpts = {
 };
 
 export class OpenAIService {
-  private client: OpenAI;
+  private client: OpenAI | null;
   private visionModel: string;
   private textModel: string;
   private hardTokenCap: number;
   private temperature: number;
 
   constructor(opts: OpenAIServiceOpts = {}) {
-    this.client = new OpenAI({ 
-      apiKey: opts.apiKey || process.env.OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true 
-    });
+    const apiKey = opts.apiKey || process.env.OPENAI_API_KEY;
+    
+    // Graceful handling for missing API key
+    if (!apiKey) {
+      console.warn('⚠️ OpenAI API key not configured. AI features will be disabled.');
+      // No client when API key is missing
+      this.client = null;
+    } else {
+      this.client = new OpenAI({ 
+        apiKey,
+        dangerouslyAllowBrowser: true 
+      });
+    }
+    
     this.visionModel = opts.visionModel || "gpt-4o";    // Current best vision model
     this.textModel = opts.textModel || "gpt-4o";
     this.hardTokenCap = opts.hardTokenCap ?? 4096;     // give GPT-5 more room to reason
@@ -70,6 +80,9 @@ export class OpenAIService {
 
   // --- 1) Vision: analyze one slide image (base64 PNG/JPEG) ---
   async analyzeSlideWithVision(imageBase64DataUrl: string, slideNumber: number): Promise<SlideAnalysisResponse> {
+    if (!this.client) {
+      return { success: false, error: 'OpenAI API key not configured. Please add your API key to enable AI features.' };
+    }
     const tryOnce = async (model: string) => this.client.chat.completions.create({
       model,
       temperature: this.temperature,
@@ -129,6 +142,16 @@ export class OpenAIService {
     summary: string;
     tags: string[];
   }> {
+    if (!this.client) {
+      // Graceful fallback: build a minimal deterministic summary locally
+      const fallbackSummary =
+        `${analysis.mainTopic}. Points: ${analysis.keyPoints.slice(0, 3).join("; ")}. Visuals: ${analysis.visualElements.slice(0, 2).join(", ")}.`;
+      const fallbackTags = [
+        ...(analysis.mainTopic ? [analysis.mainTopic] : []),
+        ...analysis.keyPoints.slice(0, 2)
+      ].map(s => s.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim()).filter(Boolean).slice(0, 5);
+      return { slideNumber, summary: fallbackSummary, tags: fallbackTags };
+    }
     try {
       const res = await this.client.chat.completions.create({
         model: this.textModel,               // "gpt-4o"
@@ -189,6 +212,9 @@ Return JSON:
     slideSummaries: Array<{ slideNumber: number; summary: string; tags: string[] }>,
     fullScript: string
   ): Promise<ScriptMatchingResponse> {
+    if (!this.client) {
+      return { success: false, error: 'OpenAI API key not configured. Script-to-slide matching requires API access.' };
+    }
     try {
       const res = await this.client.chat.completions.create({
         model: this.textModel,     // "gpt-4o"
@@ -240,6 +266,9 @@ Return JSON:
 
   // --- 3) Coaching for a slide + its script section ---
   async generateExpertCoaching(slideAnalysis: SlideAnalysis, scriptSection: string): Promise<CoachingResponse> {
+    if (!this.client) {
+      return { success: false, error: 'OpenAI API key not configured. Expert coaching requires API access.' };
+    }
     try {
       const res = await this.client.chat.completions.create({
         model: this.textModel,
