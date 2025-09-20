@@ -176,14 +176,9 @@ export default function App() {
               {/* Content Status Card */}
               <Card className="border-green-200 bg-green-50/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      Content Ready
-                    </span>
-                    <Badge variant="default" className="bg-green-600">
-                      Choose Preparation Method
-                    </Badge>
+                  <CardTitle className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                    Content Ready
                   </CardTitle>
                   <CardDescription>
                     <div className="space-y-2 mt-3">
