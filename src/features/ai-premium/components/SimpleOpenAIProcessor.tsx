@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Brain, CheckCircle, Loader2, Key, Server } from 'lucide-react';
 import { usePresentationStore } from '../../../core/store/presentation';
-import { OpenAIService } from '../../../services/openai-service';
+import { OpenAIService, type ScriptMatch } from '../../../services/openai-service';
 
 export const SimpleOpenAIProcessor = () => {
   const { currentPresentation, updateSlideScript, tempUploadedScript } = usePresentationStore();
@@ -30,6 +30,47 @@ export const SimpleOpenAIProcessor = () => {
     visionModel: "gpt-4o", 
     hardTokenCap: 4096,
   });
+
+  // Helper function for client-side API calls
+  const callOpenAIDirectly = async (messages: any[], maxTokens: number = 1000) => {
+    if (!clientApiKey) throw new Error('No API key');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${clientApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages,
+        max_tokens: maxTokens,
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'API call failed');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  };
+
+  // Auto-test connection when component mounts and has API key
+  useEffect(() => {
+    if ((selectedMode === 'server' && hasServerKey) || 
+        (selectedMode === 'client' && clientApiKey)) {
+      // Auto-test after a short delay
+      const timer = setTimeout(() => {
+        if (connectionStatus === 'unknown') {
+          testConnection();
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedMode, hasServerKey, clientApiKey, connectionStatus]);
 
   // Check server key availability on mount
   useEffect(() => {
@@ -58,27 +99,91 @@ export const SimpleOpenAIProcessor = () => {
     setConnectionStatus('testing');
     
     try {
-      // Test server-side proxy connection
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Test connection' }]
-        })
-      });
-      
-      if (response.ok) {
-        setConnectionStatus('connected');
-        alert('✅ Server-side OpenAI connection successful!');
+      if (selectedMode === 'client' && clientApiKey) {
+        // Test client-side direct OpenAI connection
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${clientApiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Test' }]
+          })
+        });
+        
+        if (response.ok) {
+          setConnectionStatus('connected');
+          alert('✅ Client-side OpenAI connection successful!');
+        } else {
+          const error = await response.json();
+          setConnectionStatus('failed');
+          alert(`❌ OpenAI connection failed: ${error.error?.message || 'Invalid API key'}`);
+        }
       } else {
-        setConnectionStatus('failed');
-        alert('❌ OpenAI connection failed. Check your API key.');
+        // Test server-side proxy connection
+        const response = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Test connection' }]
+          })
+        });
+        
+        if (response.ok) {
+          setConnectionStatus('connected');
+          alert('✅ Server-side OpenAI connection successful!');
+        } else {
+          setConnectionStatus('failed');
+          alert('❌ Server connection failed. The server may not have an API key configured.');
+        }
       }
     } catch {
       setConnectionStatus('failed');
-      alert('❌ Connection error. Check your internet connection.');
+      alert('❌ Connection error. Check your internet connection and API key.');
+    }
+  };
+
+  // Client-side slide analysis function
+  const analyzeSlideWithVisionClient = async (imageUrl: string, slideNumber: number) => {
+    const messages = [
+      {
+        role: "system",
+        content: "You are an expert presentation analyst. Analyze the slide image and extract all text, identify the main topic, key points, and visual elements."
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Analyze slide ${slideNumber} and provide a detailed analysis in JSON format with: allText, mainTopic, keyPoints (array), visualElements (array), suggestedTalkingPoints (array), emotionalTone, complexity, recommendedDuration (seconds)`
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: imageUrl
+            }
+          }
+        ]
+      }
+    ];
+
+    try {
+      const content = await callOpenAIDirectly(messages, 1500);
+      // Clean up markdown formatting if present
+      const cleanContent = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const analysis = JSON.parse(cleanContent);
+      return { success: true, analysis };
+    } catch (error) {
+      console.error(`Failed to analyze slide ${slideNumber}:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   };
 
@@ -168,7 +273,9 @@ export const SimpleOpenAIProcessor = () => {
       for (let i = 0; i < slides.length; i++) {
         setProgress(`🔍 Analyzing slide ${i + 1} of ${slides.length}...`);
         
-        const analysis = await ai.analyzeSlideWithVision(slides[i].imageUrl!, i + 1);
+        const analysis = selectedMode === 'client' && clientApiKey
+          ? await analyzeSlideWithVisionClient(slides[i].imageUrl!, i + 1)
+          : await ai.analyzeSlideWithVision(slides[i].imageUrl!, i + 1);
         
         if (analysis.success) {
           slideAnalyses.push(analysis.analysis);
@@ -193,13 +300,66 @@ export const SimpleOpenAIProcessor = () => {
       setCurrentStep(2);
       setProgress('📝 Creating slide summaries for intelligent matching...');
       
-      const slideSummaries = await ai.summarizeAllSlidesForMatching(slideAnalyses);
+      // For client mode, create simple summaries
+      const slideSummaries = selectedMode === 'client' && clientApiKey
+        ? slideAnalyses.map((analysis, i) => ({
+            slideNumber: i + 1,
+            summary: `${analysis.mainTopic}: ${analysis.keyPoints.join(', ')}`,
+            tags: [] // Add empty tags array to match expected type
+          }))
+        : await ai.summarizeAllSlidesForMatching(slideAnalyses);
       console.log('✅ Slide summaries created:', slideSummaries.length);
 
       // STEP 3: Match script to slide summaries
-      setProgress('🎯 Matching script to slides with GPT-5...');
+      setProgress('🎯 Matching script to slides with AI...');
       
-      const scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, activeScript || '');
+      let scriptMatches;
+      if (selectedMode === 'client' && clientApiKey) {
+        // Client-side AI matching
+        try {
+          const messages = [
+            {
+              role: "system",
+              content: "You are an expert at matching presentation scripts to slides. Given slide summaries and a full script, intelligently match script sections to the appropriate slides based on content alignment."
+            },
+            {
+              role: "user",
+              content: `Match this script to these slides. Return a JSON array of matches.
+
+Slides:
+${slideSummaries.map(s => `Slide ${s.slideNumber}: ${s.summary}`).join('\n')}
+
+Script:
+${activeScript}
+
+Return JSON format:
+[
+  {
+    "slideNumber": 1,
+    "scriptSection": "matched script text",
+    "confidence": 90,
+    "reasoning": "why this matches",
+    "keyAlignment": ["matching points"]
+  }
+]`
+            }
+          ];
+          
+          const content = await callOpenAIDirectly(messages, 2000);
+          const cleanContent = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+          const matches = JSON.parse(cleanContent);
+          
+          scriptMatches = { success: true, matches };
+        } catch (error) {
+          console.error('Client-side matching failed:', error);
+          // Fallback to simple distribution
+          const { parseAndApplyBulkScript } = usePresentationStore.getState();
+          parseAndApplyBulkScript(activeScript || '');
+          scriptMatches = { success: true, matches: [] };
+        }
+      } else {
+        scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, activeScript || '');
+      }
       
       if (scriptMatches.success) {
         console.log('✅ Script matching completed:', scriptMatches.matches.length, 'sections');
@@ -208,8 +368,9 @@ export const SimpleOpenAIProcessor = () => {
         setCurrentStep(3);
         setProgress('💾 Saving matched script sections...');
         
-        scriptMatches.matches.forEach((match) => {
-          const slide = slides[match.slideNumber - 1]; // Direct index access since slideNumber is 1-based
+        // Apply the matched scripts to slides
+        scriptMatches.matches.forEach((match: ScriptMatch) => {
+          const slide = slides[match.slideNumber - 1];
           if (slide) {
             console.log(`📝 Updating slide ${match.slideNumber} (${slide.id}) with script:`, match.scriptSection.substring(0, 100) + '...');
             updateSlideScript(slide.id, match.scriptSection);
@@ -218,14 +379,33 @@ export const SimpleOpenAIProcessor = () => {
           }
         });
 
+        // Generate AI guides for practice mode
+        setCurrentStep(4);
+        setProgress('🎯 Generating presenter guides...');
+        
+        // For client mode, generate simple guides
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          const guide = {
+            transitionFrom: i > 0 ? `From ${slideAnalyses[i-1].mainTopic}` : null,
+            keyMessages: slideAnalyses[i].keyPoints.slice(0, 3),
+            keyConcepts: slideAnalyses[i].visualElements.slice(0, 3),
+            transitionTo: i < slides.length - 1 ? `To ${slideAnalyses[i+1].mainTopic}` : null
+          };
+          
+          // Save guide to store
+          const { updateSlideGuide } = usePresentationStore.getState();
+          updateSlideGuide(slide.id, guide);
+        }
+        
         setProgress('✅ Processing complete!');
         alert(`🎉 OpenAI processing complete! 
         
 ✅ ${slideAnalyses.length} slides analyzed
 ✅ ${scriptMatches.matches.length} script sections matched
-✅ Average confidence: ${Math.round(scriptMatches.matches.reduce((sum, m) => sum + m.confidence, 0) / scriptMatches.matches.length)}%
+✅ Presenter guides generated
 
-Check your slides for the matched script sections and confidence ratings!`);
+You can now go to Practice Mode!`);
       } else {
         console.error('❌ Script matching failed:', scriptMatches.error);
         alert(`❌ Script matching failed: ${scriptMatches.error}`);
@@ -251,10 +431,10 @@ Check your slides for the matched script sections and confidence ratings!`);
           </div>
           <div>
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              🤖 OpenAI GPT-5 - Premium AI Processing  
+              📋 Step 2: Process with AI Vision
             </h2>
             <p className="text-sm text-gray-600">
-              Transform your presentation with GPT-5 Vision intelligence
+              AI reads your slides and matches your script intelligently ($0.10)
             </p>
           </div>
         </div>
@@ -414,8 +594,8 @@ Check your slides for the matched script sections and confidence ratings!`);
       {/* Process Button */}
       <Button
         onClick={handleProcess}
-        disabled={connectionStatus !== 'connected' || processing}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!slides.length || !hasScript || processing}
+        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
         size="lg"
       >
         <div className="flex items-center gap-2">

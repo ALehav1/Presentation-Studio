@@ -58,8 +58,8 @@ export const AIPremiumPanel = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              ~$0.10/presentation
+            <Badge variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700">
+              💰 Only $0.10 per presentation
             </Badge>
             {isExpanded ? (
               <ChevronUp className="h-5 w-5 text-gray-400" />

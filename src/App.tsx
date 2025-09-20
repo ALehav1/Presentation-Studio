@@ -10,7 +10,7 @@ import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { AIPremiumPanel } from './features/ai-premium/components/AIPremiumPanel';
+import { SimpleOpenAIProcessor } from './features/ai-premium/components/SimpleOpenAIProcessor';
 import { Check, AlertCircle } from 'lucide-react';
 import { Toaster } from './components/ui/toast';
 import './App.css';
@@ -31,12 +31,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPresentation?.id]); // Only run when presentation changes, not when function changes
   
-  // Check if setup is complete
+  // Check if setup is complete - BOTH scripts AND actual AI guides required
   useEffect(() => {
     if (currentPresentation) {
       const hasScripts = currentPresentation.slides.some(s => s.script?.trim());
-      const hasGuides = currentPresentation.slides.some(s => s.guide);
-      setSetupComplete(hasScripts && hasGuides);
+      // Check for actual guide content, not just existence
+      // Check for AI-generated guides (they will have proper content)
+      // Script-generated guides might have empty arrays
+      const hasAIGuides = currentPresentation.slides.every(s => 
+        s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)
+      );
+      // Only mark complete if BOTH scripts AND actual AI guides exist
+      setSetupComplete(hasScripts && hasAIGuides);
     }
   }, [currentPresentation]);
 
@@ -132,7 +138,9 @@ export default function App() {
                       ) : (
                         <>
                           <AlertCircle className="w-5 h-5 text-orange-600" />
-                          Setup In Progress
+                          {currentPresentation?.slides.some(s => s.script?.trim()) ? 
+                            'Setup In Progress - Complete Step 2' : 
+                            'Setup In Progress'}
                         </>
                       )}
                     </span>
@@ -147,7 +155,15 @@ export default function App() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-4 mt-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        {currentPresentation?.slides.length > 0 ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
+                        )}
+                        <span className="text-sm">PDF Uploaded ({currentPresentation?.slides.length || 0} slides)</span>
+                      </div>
                       <div className="flex items-center gap-2">
                         {currentPresentation?.slides.some(s => s.script?.trim()) ? (
                           <Check className="w-4 h-4 text-green-600" />
@@ -157,87 +173,102 @@ export default function App() {
                         <span className="text-sm">Scripts Added</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {currentPresentation?.slides.some(s => s.guide) ? (
+                        {currentPresentation?.slides.every(s => s.guide && (s.guide.keyMessages?.length > 0 || s.guide.keyConcepts?.length > 0)) ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <div className="w-4 h-4 border-2 border-gray-300 rounded" />
                         )}
-                        <span className="text-sm">Guides Generated</span>
+                        <span className="text-sm">AI Processing Complete</span>
                       </div>
                     </div>
                   </CardDescription>
                 </CardHeader>
               </Card>
-              {/* Script Upload Card */}
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>Upload Script</CardTitle>
-                  <CardDescription>
-                    Add your presentation script for all {currentPresentation.slides.length} slides
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ErrorBoundary
-                    fallbackTitle="Script Upload Error"
-                    fallbackMessage="There was a problem with the script upload. Please try again."
-                    showHomeButton={false}
-                  >
-                    <ScriptUpload 
-                      onScriptUploaded={() => {
-                        console.log('Script uploaded and parsed!');
-                        // Force re-check of setup status
-                        setSetupComplete(true);
-                      }}
-                      onNavigateToPractice={() => {
-                        setCurrentMode('practice');
-                      }}
-                    />
-                  </ErrorBoundary>
-                </CardContent>
-              </Card>
-              
-              {/* 🤖 Premium AI Enhancement Panel */}
-              <AIPremiumPanel 
-                defaultExpanded={false}
-                className="animate-in fade-in-50 slide-in-from-bottom-4 duration-300"
-              />
-              
-              {/* Two column layout for slides and editor */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle>Slides</CardTitle>
-                    <CardDescription>Navigate through your presentation</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ErrorBoundary
-                      fallbackTitle="Slide Viewer Error"
-                      fallbackMessage="There was a problem displaying the slides. Please try again."
-                      showHomeButton={false}
-                    >
-                      <SlideViewer />
-                    </ErrorBoundary>
-                  </CardContent>
-                </Card>
+              {/* Step 1: Slides and Script - Show upload button if no script */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">📁 Step 1: Content Setup</h3>
                 
+                {/* Script Upload Button - Only show if no scripts exist */}
+                {!currentPresentation.slides.some(s => s.script?.trim()) && (
+                  <Card className="border-orange-200 bg-orange-50/50">
+                    <CardHeader>
+                      <CardTitle className="text-base">Upload Your Script</CardTitle>
+                      <CardDescription>
+                        Add your presentation script to enable AI-powered practice
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ErrorBoundary
+                        fallbackTitle="Script Upload Error"
+                        fallbackMessage="There was a problem with the script uploader. Please refresh and try again."
+                        showHomeButton={false}
+                      >
+                        <ScriptUpload 
+                          onScriptUploaded={() => {
+                            console.log('Script uploaded and parsed!');
+                          }}
+                          onNavigateToPractice={() => {
+                            setCurrentMode('practice');
+                          }}
+                        />
+                      </ErrorBoundary>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Two column layout for slides and script viewer */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card className="card-hover">
+                    <CardHeader>
+                      <CardTitle>Slides</CardTitle>
+                      <CardDescription>Navigate through your presentation</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ErrorBoundary
+                        fallbackTitle="Slide Viewer Error"
+                        fallbackMessage="There was a problem displaying the slides. Please try again."
+                        showHomeButton={false}
+                      >
+                        <SlideViewer />
+                      </ErrorBoundary>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="card-hover">
+                    <CardHeader>
+                      <CardTitle>Slide Script</CardTitle>
+                      <CardDescription>Edit the script for the current slide</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ErrorBoundary
+                        fallbackTitle="Script Editor Error"
+                        fallbackMessage="There was a problem with the script editor. Please try again."
+                        showHomeButton={false}
+                      >
+                        {currentPresentation && (
+                          <ScriptEditor
+                            slideId={currentPresentation.slides[currentSlideIndex]?.id}
+                            initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
+                          />
+                        )}
+                      </ErrorBoundary>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              
+              {/* Step 2: AI Processing */}
+              <div className="space-y-4 mt-8">
+                <h3 className="text-lg font-semibold">🤖 Step 2: AI Script Analysis</h3>
                 <Card className="card-hover">
                   <CardHeader>
-                    <CardTitle>Slide Script</CardTitle>
-                    <CardDescription>Edit the script for the current slide</CardDescription>
+                    <CardTitle className="text-base">Process with AI Vision</CardTitle>
+                    <CardDescription>
+                      Analyze your slides and generate intelligent presenter guidance
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ErrorBoundary
-                      fallbackTitle="Script Editor Error"
-                      fallbackMessage="There was a problem with the script editor. Please try again."
-                      showHomeButton={false}
-                    >
-                      {currentPresentation && (
-                        <ScriptEditor
-                          slideId={currentPresentation.slides[currentSlideIndex]?.id}
-                          initialScript={currentPresentation.slides[currentSlideIndex]?.script || ''}
-                        />
-                      )}
-                    </ErrorBoundary>
+                    <SimpleOpenAIProcessor />
                   </CardContent>
                 </Card>
               </div>

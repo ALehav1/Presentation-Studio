@@ -13,6 +13,7 @@ export function ScriptEditor({ slideId, initialScript = '', className = '' }: Sc
   const [script, setScript] = useState(initialScript);
   const [wordCount, setWordCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
 
   // Calculate word count
   useEffect(() => {
@@ -22,23 +23,27 @@ export function ScriptEditor({ slideId, initialScript = '', className = '' }: Sc
 
   // Auto-save with proper debounce
   const debouncedSave = useDebouncedCallback((newScript: string) => {
-    if (newScript !== initialScript && newScript.trim()) {
+    if (hasUserEdited && newScript.trim()) {
       setIsSaving(true);
       updateSlideScript(slideId, newScript);
-      setTimeout(() => setIsSaving(false), 300); // Show saving indicator briefly
+      setTimeout(() => {
+        setIsSaving(false);
+        setHasUserEdited(false); // Reset after save
+      }, 300);
     }
   }, 500);
 
-  // Trigger save when script changes
+  // Trigger save when script changes by user
   useEffect(() => {
-    if (script !== initialScript) {
+    if (hasUserEdited) {
       debouncedSave(script);
     }
-  }, [script, initialScript, debouncedSave]);
+  }, [script, hasUserEdited, debouncedSave]);
 
   // Update local state when slide changes
   useEffect(() => {
     setScript(initialScript);
+    setHasUserEdited(false); // Reset edit flag when switching slides
   }, [initialScript, slideId]);
 
   return (
@@ -58,7 +63,10 @@ export function ScriptEditor({ slideId, initialScript = '', className = '' }: Sc
       
       <textarea
         value={script}
-        onChange={(e) => setScript(e.target.value)}
+        onChange={(e) => {
+          setScript(e.target.value);
+          setHasUserEdited(true); // Mark as edited by user
+        }}
         placeholder="Add your speaker script for this slide... 
 
 Tips:

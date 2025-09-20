@@ -1,64 +1,77 @@
 # 🚀 PresentationStudio
 
-🛡️ **ENTERPRISE-SECURE AI-Powered Presentation Coaching** with GPT-4o Vision Intelligence, backend proxy security, and production-grade error handling. Built with React, TypeScript, and shadcn/ui for professional presenters who demand reliability.
+🛡️ **AI-Powered Presentation Coaching** with GPT-4o Vision Intelligence, flexible API integration, and production-grade reliability. Built with React, TypeScript, and shadcn/ui for professional presenters who demand excellence.
 
-🎯 **SECURE AI Workflow:** Upload PDF slides → Upload/paste script → AI reads slides via secure proxy → Enterprise batch processing → Practice with intelligent guidance → Deliver confidently
+🎯 **AI-Enhanced Workflow:** Upload PDF slides → Add your script → AI analyzes slides with Vision → Intelligent script-to-slide matching → Practice with AI guidance → Deliver confidently
 
-## 🔐 CRITICAL SECURITY & STABILITY FIXES
+## 🔐 FLEXIBLE API INTEGRATION
 
-### 🛡️ HYBRID API KEY ARCHITECTURE (New)
+### 🛡️ DUAL-MODE ARCHITECTURE
 
-✅ **Dual API Key Support**: Server-side OR client-side - you choose the security level  
-✅ **Enterprise Server Keys**: Zero browser exposure when using server-side configuration  
-✅ **Personal Client Keys**: Direct OpenAI integration when you want to use your own key  
-✅ **Smart Detection**: Auto-detects server key availability and adapts UI accordingly  
-✅ **Priority Logic**: Client key always takes precedence when provided (you control costs)  
-✅ **Sharing-Friendly**: Others can use their keys when server key disabled/missing  
+✅ **Server-side Mode (Enterprise)**: Secure proxy keeps API keys on server  
+✅ **Client-side Mode (Personal)**: Direct OpenAI integration with your own key  
+✅ **Auto-Detection**: Seamlessly switches between modes based on configuration  
+✅ **Cost Control**: ~$0.10-0.30 per presentation with transparent pricing  
+✅ **No Lock-in**: Use enterprise servers or bring your own API key  
 
-**Enterprise Mode:** Server key in Vercel env → Users pay nothing, enterprise-grade security  
-**Personal Mode:** Users enter own keys → They pay OpenAI directly, full cost control
+**Enterprise Teams:** Deploy with server key → Users pay nothing, maximum security  
+**Individual Users:** Use personal API key → Direct OpenAI billing, full control
 
-### 🚀 **ENTERPRISE AI SLIDE READER V2**
+### 🚀 **AI-POWERED FEATURES**
 
-**PRODUCTION-READY FEATURES:**
-- **🔄 Intelligent Batch Processing**: Process multiple slides with automatic rate limiting
-- **🛡️ Enterprise Error Handling**: 3-tier retry logic with exponential backoff
-- **📊 Structured Data Extraction**: Smart parsing for titles, content, key points, visual elements  
-- **🏥 Health Monitoring**: Service health checks for deployment monitoring
-- **💾 Input Validation**: 5MB size limits prevent browser crashes
-- **⚡ Cost Optimization**: $0.0001 per slide with gpt-4o-mini model
+**INTELLIGENT SLIDE ANALYSIS:**
+- **👁️ GPT-4 Vision**: AI reads and understands your slide content  
+- **🎯 Smart Matching**: Automatically aligns script sections to relevant slides
+- **📊 Content Extraction**: Identifies key points, topics, and visual elements
+- **🔄 Semantic Distribution**: Scripts break at natural transitions, not word counts
+- **💡 Presenter Guidance**: AI-generated tips for each slide
+- **⚡ Fast Processing**: Complete analysis in 10-30 seconds
 
-**Backend Security Architecture:**
-
-```text
-Browser → Hybrid Proxy → OpenAI API
-├── /api/check-key (detect server key availability)
-├── /api/openai (hybrid endpoint: server OR client key)
-├── Priority: client key > server key
-└── Graceful fallback with clear error messages
-```
-
-**API Key Selection UI:**
+**Flexible Architecture:**
 
 ```text
-🤖 OpenAI API Configuration
-
-○ Server-side Processing (Enterprise)
-  ✓ Available OR ⚠️ No key configured - disabled
-
-○ Client-side Processing (Personal) 
-  [sk-...                    ] [Test]
-  Get your key at platform.openai.com
-
-[Test Server Connection] / [Test Client Connection]
+Client-side Mode:          Server-side Mode:
+Browser → OpenAI API       Browser → Proxy → OpenAI API
+├── Direct API calls       ├── /api/openai endpoint
+├── Personal API key       ├── Server environment key
+└── User controls costs    └── Enterprise security
 ```
 
-**User Experience Scenarios:**
+**Clear Setup Flow:**
 
-- **Enterprise User**: Server key configured → Uses server by default, can override with client key
-- **Personal User**: No server key → Client option enabled, must enter own key  
-- **Sharing**: Send URL to others → They use their own keys when server unavailable
-- **Cost Control**: Enter client key → Always uses your key (you pay directly)
+```text
+📁 Step 1: Content Setup
+├── Upload PDF slides (drag & drop)
+├── Add presentation script
+└── View slides + edit scripts side-by-side
+
+🤖 Step 2: AI Script Analysis  
+├── Choose API mode (server/client)
+├── Test connection
+└── Process with OpenAI Vision
+```
+
+## ✨ KEY IMPROVEMENTS
+
+### 📱 STREAMLINED UI/UX
+- **Clear 2-Step Process**: Content Setup → AI Analysis
+- **Side-by-Side Layout**: View slides and scripts together
+- **Smart Status Tracking**: Visual indicators for each setup stage
+- **Auto-Save Scripts**: Changes save automatically with debouncing
+- **Responsive Design**: Works perfectly on desktop and mobile
+
+### 🧠 INTELLIGENT PROCESSING
+- **Vision API Integration**: AI actually reads your slides
+- **Content-Aware Matching**: Scripts matched based on slide topics
+- **Natural Transitions**: Breaks at "Moving on", "Next", "Finally"
+- **Fallback Logic**: Graceful degradation if AI fails
+- **Progress Tracking**: Real-time updates during processing
+
+### 💾 ROBUST STORAGE
+- **IndexedDB for Images**: No more localStorage limits
+- **Persistent Sessions**: Resume where you left off
+- **Automatic Cleanup**: Prevents storage bloat
+- **Offline Support**: Works without constant internet
 
 ## 🧠 **SECURE AI VISION INTELLIGENCE**
 
@@ -604,9 +617,24 @@ Next, we'll examine the implementation details.
 - Real-time context-aware guidance
 - **THE COMPREHENSIVE DIFFERENCE**: Professional-grade script allocation + seamless Setup/Practice sync + mobile-first design = Production-ready presentation workflow that works flawlessly across all devices!
 
-## 🎉 **LATEST UPDATE - ENTERPRISE SECURITY & AI V2 COMPLETE!**
+## 🎉 **LATEST UPDATE - UI/UX BREAKTHROUGH & ENTERPRISE SECURITY COMPLETE!**
 
 ### ✅ **Just Implemented (September 2025):**
+
+#### 🎯 **CRITICAL UI/UX FIXES - SURGICAL IMPROVEMENTS:**
+- **🚀 AI Panel Auto-Expands**: Premium AI features now start visible instead of hidden
+- **💰 Clear Pricing Display**: "Only $0.10 per presentation" with green styling replaces confusing "~$0.10"
+- **📋 Step-by-Step Flow**: Clear "Step 1: Upload Script" → "Step 2: Process with AI Vision" progression
+- **✅ Smart Success States**: Script upload shows completion status instead of redundant forms
+- **🔧 Auto-Connection Testing**: API connections test automatically when keys are available
+- **🎨 Prominent Process Button**: Larger, more visible AI processing button with better hierarchy
+- **⚡ Fixed Setup Logic**: Setup completion now correctly requires BOTH scripts AND AI guides
+
+#### 🧠 **USER EXPERIENCE TRANSFORMATION:**
+**Before:** Hidden AI features, confusing pricing, redundant forms, unclear progression
+**After:** Visible AI panel, clear pricing, step-by-step flow, smart state management
+
+**Result:** Users can now easily discover and use the advanced AI features that were previously hidden
 
 #### 🚀 **ENTERPRISE AI SLIDE READER V2 - PRODUCTION READY:**
 - **Complete Architecture Overhaul**: Replaced deprecated localStorage-based implementation with enterprise backend proxy
