@@ -1,6 +1,7 @@
 /**
  * OpenAI API Proxy for Vercel
- * Secure server-side proxy with API key stored in environment variables
+ * Hybrid: supports both server-side and client-side API keys
+ * Priority: client key > server key
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -8,13 +9,29 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Get API key with priority: client > server
+    const clientKey = req.body.apiKey;  
+    const serverKey = process.env.OPENAI_API_KEY;
+    const apiKey = clientKey || serverKey;
+
+    if (!apiKey) {
+      return res.status(400).json({ 
+        error: 'No API key available. Please provide a client key or configure server key.' 
+      });
+    }
+
+    // Remove apiKey from body before sending to OpenAI
+    const { apiKey: _, ...requestBody } = req.body;
+    
+    console.log(`🔑 Using ${clientKey ? 'client' : 'server'} API key`);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(req.body)
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
