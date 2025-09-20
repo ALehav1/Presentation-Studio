@@ -7,7 +7,7 @@ import { usePresentationStore } from '../../../core/store/presentation';
 import { OpenAIService } from '../../../services/openai-service';
 
 export const SimpleOpenAIProcessor = () => {
-  const { currentPresentation, updateSlideScript } = usePresentationStore();
+  const { currentPresentation, updateSlideScript, tempUploadedScript } = usePresentationStore();
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'testing' | 'connected' | 'failed'>('unknown');
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState('');
@@ -15,7 +15,8 @@ export const SimpleOpenAIProcessor = () => {
   const [totalSteps] = useState(4);
 
   const slides = currentPresentation?.slides || [];
-  const hasScript = Boolean(currentPresentation?.fullScript);
+  const hasScript = Boolean(currentPresentation?.fullScript || tempUploadedScript);
+  const activeScript = currentPresentation?.fullScript || tempUploadedScript;
 
   // Initialize OpenAI service (server-side proxy)
   const ai = new OpenAIService({
@@ -58,7 +59,9 @@ export const SimpleOpenAIProcessor = () => {
       connected: connectionStatus === 'connected',
       slidesCount: slides.length, 
       hasScript,
-      fullScript: currentPresentation?.fullScript?.length || 0
+      fullScript: currentPresentation?.fullScript?.length || 0,
+      tempScript: tempUploadedScript?.length || 0,
+      activeScript: activeScript?.length || 0
     });
     
     if (connectionStatus !== 'connected') {
@@ -152,7 +155,7 @@ export const SimpleOpenAIProcessor = () => {
       // STEP 3: Match script to slide summaries
       setProgress('🎯 Matching script to slides with GPT-5...');
       
-      const scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, currentPresentation?.fullScript || '');
+      const scriptMatches = await ai.matchScriptToSlidesFromSummaries(slideSummaries, activeScript || '');
       
       if (scriptMatches.success) {
         console.log('✅ Script matching completed:', scriptMatches.matches.length, 'sections');

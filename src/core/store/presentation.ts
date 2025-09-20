@@ -55,9 +55,18 @@ export const usePresentationStore = create<PresentationState>()(
       
       // Create new presentation from uploaded PDF
       createPresentation: async (title, slideImages) => {
+        // Preserve any temp uploaded script before cleanup
+        const tempScript = get().tempUploadedScript;
+        
         // Automatically clear any existing presentation first
         await get().clearPresentation();
         console.log('🧹 Auto-cleared existing presentation for fresh start');
+        
+        // Restore the temp script if it existed
+        if (tempScript) {
+          get().setTempUploadedScript(tempScript);
+          console.log('📝 Preserved temp script during cleanup');
+        }
         
         const timestamp = Date.now();
         const presentationId = `pres-${timestamp}`;
