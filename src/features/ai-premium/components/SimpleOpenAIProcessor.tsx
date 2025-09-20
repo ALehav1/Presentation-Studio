@@ -430,8 +430,8 @@ Return JSON format:
         
         // Show success toast
         toast({
-          title: "🎉 Part 2 Complete - AI Enhancement Ready!",
-          description: `Successfully analyzed ${slideAnalyses.length} slides and matched ${scriptMatches.matches.length} script sections. Your practice mode is now AI-enhanced!`,
+          title: "🎉 AI Processing Complete!",
+          description: `Successfully analyzed ${slideAnalyses.length} slides and matched ${scriptMatches.matches.length} script sections. Practice mode is now enhanced!`,
         });
         
         // Auto-navigate to practice after 2 seconds
@@ -633,30 +633,6 @@ Return JSON format:
         </div>
       </Button>
 
-      {/* Proceed to Practice Button - Shows after processing */}
-      {processingComplete && !processing && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-          <div className="text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-green-700">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-semibold">Part 2 Complete - AI Enhancement Active!</span>
-            </div>
-            <p className="text-sm text-green-600">
-              Your slides have been analyzed and scripts intelligently matched. Practice mode is now enhanced with AI guidance.
-            </p>
-            <Button
-              onClick={() => {
-                const practiceTab = document.querySelector('[value="practice"]') as HTMLButtonElement;
-                practiceTab?.click();
-              }}
-              size="lg"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg"
-            >
-              🎯 Proceed to AI-Enhanced Practice
-            </Button>
-          </div>
-        </div>
-      )}
     </Card>
   );
 };
