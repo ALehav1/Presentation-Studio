@@ -169,11 +169,6 @@ export const SimpleOpenAIProcessor = () => {
           if (slide) {
             console.log(`📝 Updating slide ${match.slideNumber} (${slide.id}) with script:`, match.scriptSection.substring(0, 100) + '...');
             updateSlideScript(slide.id, match.scriptSection);
-            
-            // Clear the presenter guide since the script changed - it will regenerate when needed
-            const { updateSlideGuide } = usePresentationStore.getState();
-            updateSlideGuide(slide.id, undefined as any);
-            console.log(`🧹 Cleared presenter guide for slide ${match.slideNumber} - will regenerate`);
           } else {
             console.error(`❌ Could not find slide ${match.slideNumber} in slides array`);
           }
