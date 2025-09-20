@@ -1,4 +1,4 @@
-// Server-side AI processor - secure implementation
+// Server-side AI processor - enterprise secure implementation
 import { useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
