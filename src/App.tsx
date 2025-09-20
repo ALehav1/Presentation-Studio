@@ -4,14 +4,13 @@ import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
 import { ScriptFlow } from './features/upload/components/ScriptFlow';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
-import { EnhancedManualAlignment } from './features/script/components/EnhancedManualAlignment';
+import { PreparationOptions } from './features/setup/components/PreparationOptions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { SimpleOpenAIProcessor } from './features/ai-premium/components/SimpleOpenAIProcessor';
-import { Check, AlertCircle, Trash2 } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import { Toaster } from './components/ui/toast';
 import { SimplePracticeView } from './features/practice/components/SimplePracticeView';
 import './App.css';
@@ -170,76 +169,47 @@ export default function App() {
 
             {/* Tab content with modern cards */}
             <TabsContent value="setup" className="space-y-6">
-              {/* Setup Progress Card */}
-              <Card className={setupComplete ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/50"}>
+              {/* Content Status Card */}
+              <Card className="border-green-200 bg-green-50/50">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      {hasAIProcessing ? (
-                        <>
-                          <Check className="w-5 h-5 text-green-600" />
-                          Part 1 & 2 Complete
-                        </>
-                      ) : setupComplete ? (
-                        <>
-                          <Check className="w-5 h-5 text-blue-600" />
-                          Part 1 Complete
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-5 h-5 text-orange-600" />
-                          Getting Started
-                        </>
-                      )}
+                      <Check className="w-5 h-5 text-green-600" />
+                      Content Ready
                     </span>
-                    {setupComplete && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => setCurrentMode('practice')}
-                        className="bg-green-600 hover:bg-green-700 min-h-[44px] px-4"
-                      >
-                        Ready for Practice →
-                      </Button>
-                    )}
+                    <Badge variant="default" className="bg-green-600">
+                      Choose Preparation Method
+                    </Badge>
                   </CardTitle>
                   <CardDescription>
-                    <div className="space-y-3 mt-3">
-                      <div className="font-semibold text-sm text-gray-700">Part 1: Basic Setup</div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {currentPresentation ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
-                        )}
+                    <div className="space-y-2 mt-3">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-green-600" />
                         <span className="text-sm">PDF Slides ({currentPresentation?.slides.length || 0} uploaded)</span>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {currentPresentation?.slides.some(s => s.script?.trim()) ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
-                        )}
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-green-600" />
                         <span className="text-sm">Presentation Script</span>
                       </div>
-                      
-                      <div className="font-semibold text-sm text-gray-700 mt-3">Part 2: AI Enhancement (Optional)</div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {hasAIProcessing ? (
+                      {hasAIProcessing && (
+                        <div className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <div className="w-4 h-4 border-2 border-gray-300 rounded" />
-                        )}
-                        <span className="text-sm">
-                          {hasAIProcessing ? 'AI Analysis Complete' : 'Not processed yet'}
-                        </span>
-                      </div>
+                          <span className="text-sm">AI Enhancement Complete</span>
+                        </div>
+                      )}
+                      {currentPresentation?.slides.some(s => s.guide) && (
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span className="text-sm">Presenter Guides Created</span>
+                        </div>
+                      )}
                     </div>
                   </CardDescription>
                 </CardHeader>
               </Card>
-              {/* Part 1: Slides and Script - Show upload button if no script */}
+              {/* Content Viewer - Shows uploaded slides and scripts */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">📁 Part 1: Basic Setup (PDF + Script)</h3>
+                <h3 className="text-lg font-semibold">📁 Your Content</h3>
                 
                 {/* Script upload is now handled in the flow before reaching this page */}
                 
@@ -284,14 +254,9 @@ export default function App() {
                 </div>
               </div>
               
-              {/* Manual Script Alignment - Optional tool between Part 1 and Part 2 */}
-              <div className="mt-6">
-                <EnhancedManualAlignment />
-              </div>
-              
-              {/* Part 2: AI Processing - Directly embedded */}
+              {/* Preparation Options - Choose how to prepare for practice */}
               <div className="mt-8">
-                <SimpleOpenAIProcessor />
+                <PreparationOptions />
               </div>
             </TabsContent>
             
