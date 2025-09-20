@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { usePresentationStore } from '../../../core/store/presentation';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Brain, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { OpenAIService } from '../../../services/openai-service';
+import { Input } from '../../../components/ui/input';
+import { Brain, CheckCircle, Loader2, Key, Server } from 'lucide-react';
+import { OpenAIService, ScriptMatch } from '../../../services/openai-service';
 import { useToast } from '../../../hooks/use-toast';
 import { createDebugger } from '../../../shared/utils/debug';
 
@@ -562,7 +562,7 @@ Return JSON format:
                     type="password"
                     placeholder="sk-..."
                     value={clientApiKey}
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const newKey = e.target.value;
                       setClientApiKey(newKey);
                       localStorage.setItem('openai_api_key', newKey);
