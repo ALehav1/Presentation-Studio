@@ -420,9 +420,14 @@ src/
 - Presenter guides are only available through AI processing
 - The three-path preparation UI (Quick/Manual/AI) is functional but limited in the manual path
 
+### Known Limitations
+- **AI Script Matching**: The AI may not match scripts to all slides if it can't find relevant content. This is by design to ensure quality matches, but can leave some slides without scripts (showing "No script available for this slide")
+- **Workaround**: Use manual script distribution for complete control over script assignment
+
 ### TODO - Critical Bugs
-1. **"Go to Practice" button after AI processing doesn't work** - The navigation function is not being passed properly through the component chain
-2. **Complete conversion of console.log to debug utility** - Many console.log statements remain in SimpleOpenAIProcessor
+1. ~~**"Go to Practice" button after AI processing doesn't work**~~ ✅ FIXED - Added navigation prop and fixed TypeScript errors
+2. **AI Script Matching Missing Slides** - Sometimes AI doesn't match scripts to all slides (e.g., slide 2 in the example)
+3. **Complete conversion of console.log to debug utility** - Many console.log statements remain in SimpleOpenAIProcessor
 
 ## 🎯 Usage
 
