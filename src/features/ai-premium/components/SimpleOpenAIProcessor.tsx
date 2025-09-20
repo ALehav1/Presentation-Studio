@@ -19,9 +19,8 @@ export const SimpleOpenAIProcessor = () => {
   const slides = currentPresentation?.slides || [];
   const hasScript = Boolean(currentPresentation?.fullScript);
 
-  // Initialize OpenAI service
+  // Initialize OpenAI service (now uses server-side proxy)
   const ai = new OpenAIService({
-    apiKey,
     textModel: "gpt-4o",
     visionModel: "gpt-4o", 
     hardTokenCap: 4096,

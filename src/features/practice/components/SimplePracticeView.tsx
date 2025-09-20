@@ -119,9 +119,8 @@ export function SimplePracticeView({ onBack }: SimplePracticeViewProps) {
 
         if (isCancelled) return;
 
-        // Initialize OpenAI service
+        // Initialize OpenAI service (now uses server-side proxy)
         const ai = new OpenAIService({
-          apiKey,
           textModel: "gpt-4o",
           hardTokenCap: 2000,
         });
