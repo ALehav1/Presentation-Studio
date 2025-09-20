@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { usePresentationStore } from './core/store/presentation';
 import { EnhancedWelcome } from './features/upload/components/EnhancedWelcome';
+import { ScriptFlow } from './features/upload/components/ScriptFlow';
 import { SlideViewer } from './features/slides/components/SlideViewer';
 import { ScriptEditor } from './features/script/components/ScriptEditor';
-import { ScriptUpload } from './features/script/components/ScriptUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
@@ -118,6 +118,19 @@ export default function App() {
               }}
             />
           </ErrorBoundary>
+        ) : currentPresentation && !currentPresentation.slides.some(s => s.script?.trim()) && !usePresentationStore.getState().getTempUploadedScript() ? (
+          // Show script flow when we have slides but no script
+          <ErrorBoundary
+            fallbackTitle="Script Setup Error" 
+            fallbackMessage="There was a problem loading the script setup. Please try refreshing the page."
+          >
+            <ScriptFlow 
+              onComplete={() => {
+                // Force a re-render to show the main setup
+                window.location.reload();
+              }}
+            />
+          </ErrorBoundary>
         ) : (
           <Tabs value={currentMode} onValueChange={(value) => setCurrentMode(value as 'setup' | 'practice')} className="w-full">
             {/* Beautiful tab navigation */}
@@ -227,33 +240,7 @@ export default function App() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">📁 Part 1: Basic Setup (PDF + Script)</h3>
                 
-                {/* Script Upload Button - Only show if no scripts exist */}
-                {!currentPresentation.slides.some(s => s.script?.trim()) && (
-                  <Card className="border-orange-200 bg-orange-50/50">
-                    <CardHeader>
-                      <CardTitle className="text-base">Upload Your Script</CardTitle>
-                      <CardDescription>
-                        Add your presentation script to enable AI-powered practice
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ErrorBoundary
-                        fallbackTitle="Script Upload Error"
-                        fallbackMessage="There was a problem with the script uploader. Please refresh and try again."
-                        showHomeButton={false}
-                      >
-                        <ScriptUpload 
-                          onScriptUploaded={() => {
-                            console.log('Script uploaded and parsed!');
-                          }}
-                          onNavigateToPractice={() => {
-                            setCurrentMode('practice');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Script upload is now handled in the flow before reaching this page */}
                 
                 {/* Two column layout for slides and script viewer */}
                 <div className="grid md:grid-cols-2 gap-6">
