@@ -28,11 +28,13 @@
 - **Success Toasts**: Clear feedback at each step
 - **Data Protection**: Confirmation dialog before clearing data
 
-### ✅ **Hybrid Script Alignment**
-- **Manual Script Distribution**: Users can manually assign script sections to slides
-- **User-Written Guides**: Create custom presenter guides with key points and tips
-- **AI Respects Manual Work**: AI processor uses manually distributed scripts if present
-- **Visual Status Grid**: See which slides have scripts and guides at a glance
+### ✅ **Hybrid Script Alignment** (Partially Implemented)
+- **Manual Script Distribution**: Users can manually assign script sections to slides ✅
+- **User-Written Guides**: ❌ *Planned but not implemented due to type conflicts*
+- **AI Respects Manual Work**: AI processor uses manually distributed scripts if present ✅
+- **Visual Status Grid**: See which slides have scripts at a glance ✅
+
+**Note**: The enhanced manual alignment with custom guide creation was removed due to incompatible type definitions between the guide structure needed for manual creation vs. the AI-generated ContentGuide interface.
 
 ## 🔐 FLEXIBLE API INTEGRATION
 
@@ -342,8 +344,7 @@ src/
 │   │   ├── components/   # Script UI components
 │   │   │   ├── ScriptEditor.tsx            # Individual slide editing
 │   │   │   ├── ScriptUpload.tsx            # Streamlined upload with auto-parsing
-│   │   │   ├── ManualScriptAlignment.tsx   # 🆕 Basic manual script distribution
-│   │   │   ├── EnhancedManualAlignment.tsx # 🆕 Manual alignment with guide creation
+│   │   │   ├── ManualScriptAlignment.tsx   # Basic manual script distribution
 │   │   │   ├── SlideScriptEditor.tsx       # Desktop grid view with direct editing
 │   │   │   ├── SimplifiedScriptView.tsx    # Mobile carousel view
 │   │   │   └── ResponsiveScriptEditor.tsx  # Responsive wrapper component
@@ -407,6 +408,18 @@ src/
 - **Reusable Components**: Shared components for consistent UI patterns
 - **TypeScript**: Full type safety throughout the application
 
+## ⚠️ Known Limitations
+
+### Features That Were Planned But Not Implemented
+1. **User-Written Presenter Guides**: The EnhancedManualAlignment component was removed due to type conflicts between manual guide creation and AI-generated ContentGuide interfaces
+2. **Full PreparationOptions Integration**: While the component exists, it uses the basic ManualScriptAlignment instead of the enhanced version
+3. **Custom Guide Fields**: The planned ability to add custom key points, tips, transitions, and timing for each slide manually
+
+### Current Workarounds
+- Manual script distribution works, but without custom guide creation
+- Presenter guides are only available through AI processing
+- The three-path preparation UI (Quick/Manual/AI) is functional but limited in the manual path
+
 ## 🎯 Usage
 
 ### 🧠 **NEW: Flexible Preparation Workflow**
@@ -426,8 +439,8 @@ src/
 
 **Option 2: Manual Setup** ✏️
 - Distribute script sections to specific slides yourself
-- Write custom presenter guides with key points and tips
-- Full control over content organization
+- ~~Write custom presenter guides with key points and tips~~ *(Feature removed)*
+- Control script distribution manually
 - Visual grid shows script coverage per slide
 
 **Option 3: AI Enhancement** 🧠
